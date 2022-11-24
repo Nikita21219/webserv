@@ -50,7 +50,7 @@ int main() {
         std::stringstream response_body;
         std::stringstream response;
         response_body << "<title>Test C++ HTTP Server</title>\n"
-                      << "<h1>Любименький Катёночек</h1>\n"
+                      << "<h1>Test page on first server bclarind</h1>\n"
                       << "<p>This is body of the test page...</p>\n"
                       << "<h2>Request headers</h2>\n"
                       << "<pre>" << buf << "</pre>\n"
