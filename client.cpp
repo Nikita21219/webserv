@@ -32,7 +32,7 @@ int main(int argc, char const* argv[])
     if (send(sock, "hello from client\n", strlen("hello from client\n"), 0) < 0)
         exitFail("Send error\n");
 
-    if (read(sock, buf, 1024) < 0)
+    if (recv(sock, buf, 1024, 0) < 0)
         exitFail("Read error\n");
 
     std::cout << buf << "\n";

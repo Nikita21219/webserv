@@ -36,7 +36,7 @@ int main() {
     if ((new_sock = accept(listen_sock, (struct sockaddr*) &addr, (socklen_t*)&addrlen)) < 0)
         exitFail("Accept error\n");
 
-    read_res = read(new_sock, buf, 1024);
+    read_res = recv(new_sock, buf, 1024, 0);
     std::cout << buf << "\n";
 
     send(new_sock, "hello from server\n", strlen("hello from server\n"), 0);
