@@ -84,6 +84,8 @@ int main() {
                 }
                 buf[read_res] = 0;
 
+                std::cout << "BUF CONTENT:\n" << buf << "\n";
+
                 std::stringstream response_body;
                 std::stringstream response;
                 response_body << "<title>Test C++ HTTP Server</title>\n"
