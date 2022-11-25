@@ -7,6 +7,8 @@
 #include <sstream>
 #include <vector>
 
+#include "Server.hpp"
+
 #define BUF_SIZE 1024
 
 int exitFail(std::string s) {
@@ -15,6 +17,9 @@ int exitFail(std::string s) {
 }
 
 int main() {
+
+    Server serv = Server("127.0.0.1", 8080);
+
     int listen_sock, read_res, max;
     int opt = 1;
     int num_socks = 0;
@@ -79,8 +84,9 @@ int main() {
                     exitFail("Recv error\n");
                 if (read_res == 0) {
                     close(*it);
+                    FD_CLR(*it, &read_set);
                     clients.erase(it);
-                    exitFail("Connection closed\n");
+                    continue;
                 }
                 buf[read_res] = 0;
 
