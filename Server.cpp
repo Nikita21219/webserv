@@ -57,9 +57,45 @@ int Server::acceptNewConnection(int sock, fd_set *set, struct sockaddr_in *addr)
     return new_sock;
 }
 
+int Server::recieve(std::vector<int>::iterator it, char **buf) {
+    int recv_res = recv(*it, *buf, BUF_SZ, 0);
+    if (recv_res < 0)
+        return 1;
+    if (recv_res == 0) {
+        FD_CLR(*it, &read_set);
+        close(*it);
+        client_sockets.erase(it);
+        return 1;
+    }
+    *(*buf + recv_res) = 0;
+    return 0;
+}
+
+int Server::sendResponse(std::vector<int>::iterator it, char *buf) {
+    std::stringstream response_body;
+    std::stringstream response;
+    response_body << "<title>Test C++ HTTP Server</title>\n"
+                  << "<h1>Test page on first server bclarind</h1>\n"
+                  << "<p>This is body of the test page...</p>\n"
+                  << "<h2>Request headers</h2>\n"
+                  << "<pre>" << buf << "</pre>\n"
+                  << "<em><small>Test C++ Http Server</small></em>\n";
+
+    response << "HTTP/1.1 200 OK\r\n"
+             << "Version: HTTP/1.1\r\n"
+             << "Content-Type: text/html; charset=utf-8\r\n"
+             << "Content-Length: " << response_body.str().length()
+             << "\r\n\r\n"
+             << response_body.str();
+
+    if (send(*it, response.str().c_str(), response.str().length(), 0) < 0)
+        return -1;
+    return 0;
+}
+
 void Server::mainLoop() {
-    int max, recv_res;
-    char buf[BUF_SZ];
+    int max;
+    char *buf = new char[BUF_SZ];
     fd_set tmp_read_set;
     struct sockaddr_in clientAddr;
     struct sockaddr_in addr = getAddr(8080);
@@ -81,33 +117,9 @@ void Server::mainLoop() {
 
         for (std::vector<int>::iterator it = client_sockets.begin(); it != client_sockets.end(); it++) {
             if (FD_ISSET(*it, &read_set)) {
-                recv_res = recv(*it, buf, BUF_SZ, 0);
-                if (recv_res < 0)
+                if (recieve(it, &buf))
                     continue;
-                if (recv_res == 0) {
-                    FD_CLR(*it, &read_set);
-                    close(*it);
-                    client_sockets.erase(it);
-                    continue;
-                }
-                buf[recv_res] = 0;
-                std::stringstream response_body;
-                std::stringstream response;
-                response_body << "<title>Test C++ HTTP Server</title>\n"
-                              << "<h1>Test page on first server bclarind</h1>\n"
-                              << "<p>This is body of the test page...</p>\n"
-                              << "<h2>Request headers</h2>\n"
-                              << "<pre>" << buf << "</pre>\n"
-                              << "<em><small>Test C++ Http Server</small></em>\n";
-
-                response << "HTTP/1.1 200 OK\r\n"
-                         << "Version: HTTP/1.1\r\n"
-                         << "Content-Type: text/html; charset=utf-8\r\n"
-                         << "Content-Length: " << response_body.str().length()
-                         << "\r\n\r\n"
-                         << response_body.str();
-
-                if (send(*it, response.str().c_str(), response.str().length(), 0) < 0)
+                if (sendResponse(it, buf))
                     continue;
             }
         }
