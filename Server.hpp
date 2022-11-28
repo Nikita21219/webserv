@@ -23,10 +23,10 @@ public:
 private:
     int getListenSocket(struct sockaddr_in addr);
     struct sockaddr_in getAddr(int port);
-    int getMaxSock(std::vector<int> socks);
     int acceptNewConnection(int sock, fd_set *set, struct sockaddr_in *addr);
     int recieve(std::vector<int>::iterator it, char **buf);
-    int sendResponse(std::vector<int>::iterator it, char *buf);
+    int sendResponse(std::vector<int>::iterator it, std::string filename);
+    int renderTemplate(std::string filename, std::vector<int>::iterator it, char **buf);
 
     std::string ip;
     int port;
