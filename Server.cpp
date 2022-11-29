@@ -51,6 +51,8 @@ int Server::acceptNewConnection(int sock, fd_set *set, struct sockaddr_in *addr)
     if (FD_ISSET(sock, set)) {
         if ((new_sock = accept(sock, (struct sockaddr *) addr, (socklen_t *) &addrLen)) < 0)
             return -1;
+        if (new_sock > FD_SETSIZE)
+            close(new_sock);
         if (fcntl(new_sock, F_SETFL, O_NONBLOCK) < 0)
             return -1;
         client_sockets.insert(client_sockets.begin(), new_sock);
@@ -59,37 +61,46 @@ int Server::acceptNewConnection(int sock, fd_set *set, struct sockaddr_in *addr)
 }
 
 int Server::recieve(std::vector<int>::iterator it, char **buf) {
-    ssize_t recv_res = recv(*it, *buf, BUF_SZ - 1, 0);
+    ssize_t recv_res = -1;
+    while (true) {
+        recv_res = recv(*it, *buf, BUF_SZ, 0);
+        if (recv_res <= 0)
+            break;
+    }
     if (recv_res < 0)
-        return 1;
+        return errno == EAGAIN ? 0 : 1;
     if (recv_res == 0) {
         FD_CLR(*it, &read_set);
         close(*it);
         client_sockets.erase(it);
+        std::cerr << "Client go away!\n";
         return 0;
     }
     *(*buf + recv_res) = 0;
+//    std::cout << *buf << "\n";
     return 0;
 }
 
 int Server::sendResponse(std::vector<int>::iterator it, std::string filename) {
-    (void)filename;
+    (void) filename;
     std::stringstream response_body;
     std::stringstream response;
 
-    std::ifstream file(filename);
-    char s[BUF_SZ];
-    while (!file.eof()) {
-        file.getline(s, BUF_SZ, '\n');
-//        std::cout << s;
-        response_body << s << "\n";
-    }
+//    std::ifstream file(filename);
+//    char s[BUF_SZ];
+//    if (file.is_open()) {
+//        while (!file.eof()) {
+//            file.getline(s, BUF_SZ, '\n');
+//            response_body << s << "\n";
+//        }
+//        file.close();
+//    } else {
+//        return -1;
+//    }
 
-    response_body << "<title>Test C++ HTTP Server</title>\n"
+    response_body << "<title>webserv</title>\n"
                   << "<h1>Test page on first server bclarind</h1>\n"
                   << "<p>This is body of the test page...</p>\n"
-//                  << "<h2>Request headers</h2>\n"
-//                  << "<pre>" << buf << "</pre>\n"
                   << "<em><small>Test C++ Http Server</small></em>\n";
 
     response << "HTTP/1.1 200 OK\r\n"
@@ -105,8 +116,6 @@ int Server::sendResponse(std::vector<int>::iterator it, std::string filename) {
 }
 
 int Server::renderTemplate(std::string filename, std::vector<int>::iterator it, char **buf) {
-    (void) filename;
-    (void) buf;
     filename = "templates/" + filename;
     if (recieve(it, buf))
         return -1;
@@ -118,17 +127,20 @@ int Server::renderTemplate(std::string filename, std::vector<int>::iterator it, 
 void Server::mainLoop() {
     int max;
     char *buf = new char[BUF_SZ];
-    fd_set tmp_read_set;
+    fd_set tmp_read_set, tmp_write_set;
     struct sockaddr_in clientAddr;
     struct sockaddr_in addr = getAddr(8080);
     int listen_sock = getListenSocket(addr);
 
     FD_SET(listen_sock, &read_set);
     while (true) {
-        for (std::vector<int>::iterator i = client_sockets.begin(); i != client_sockets.end(); i++)
+        for (std::vector<int>::iterator i = client_sockets.begin(); i != client_sockets.end(); i++) {
             FD_SET(*i, &read_set);
+//            FD_SET(*i, &write_set);
+        }
         tmp_read_set = read_set;
-        if (client_sockets.size() == 0)
+        tmp_write_set = write_set;
+        if (client_sockets.empty())
             max = listen_sock;
         else
             max = *std::max_element(client_sockets.begin(), client_sockets.end());
@@ -141,10 +153,9 @@ void Server::mainLoop() {
             if (FD_ISSET(*it, &tmp_read_set)) {
                 if (renderTemplate("index.html", it, &buf) == -1)
                     std::cerr << "renderTemplate error\n";
-//                if (recieve(it, &buf))
-//                    continue;
-//                if (sendResponse(it, buf))
-//                    continue;
+            }
+            if (FD_ISSET(*it, &tmp_write_set)) {
+                std::cout << "Test message\n";
             }
         }
     }
