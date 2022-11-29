@@ -69,7 +69,7 @@ int Server::recieve(std::vector<int>::iterator it, char **buf) {
         *(*buf + recv_res) = 0;
     }
     if (recv_res < 0) {
-        std::cerr << "ERROR: " << strerror(errno) << "\n";
+        std::cerr << "ERROR from recieve: " << strerror(errno) << "\n";
         return errno == EAGAIN ? 0 : 1;
     }
     if (recv_res == 0) {
@@ -88,17 +88,17 @@ int Server::sendResponse(std::vector<int>::iterator it, std::string filename) {
     std::stringstream response_body;
     std::stringstream response;
 
-//    std::ifstream file(filename);
-//    char s[BUF_SZ];
-//    if (file.is_open()) {
-//        while (!file.eof()) {
-//            file.getline(s, BUF_SZ, '\n');
-//            response_body << s << "\n";
-//        }
-//        file.close();
-//    } else {
-//        return -1;
-//    }
+   // std::ifstream file(filename);
+   // char s[BUF_SZ];
+   // if (file.is_open()) {
+   //     while (!file.eof()) {
+   //         file.getline(s, BUF_SZ, '\n');
+   //         response_body << s << "\n";
+   //     }
+   //     file.close();
+   // } else {
+   //     return -1;
+   // }
 
     response_body << "<title>webserv</title>\n"
                   << "<h1>Test page on first server bclarind</h1>\n"
@@ -114,23 +114,15 @@ int Server::sendResponse(std::vector<int>::iterator it, std::string filename) {
 
     if (send(*it, response.str().c_str(), response.str().length(), 0) < 0)
         return -1;
+    FD_CLR(*it, &write_set);
     return 0;
 }
-
-// int Server::renderTemplate(std::string filename, std::vector<int>::iterator it, char **buf) {
-//     filename = "templates/" + filename;
-//     if (recieve(it, buf))
-//         return -1;
-//     if (sendResponse(it, filename))
-//         return -1;
-//     return 0;
-// }
 
 void Server::mainLoop() {
     int max;
     char *buf = new char[BUF_SZ];
     fd_set tmp_read_set, tmp_write_set;
-    struct sockaddr_in clientAddr;
+    struct sockaddr_in clientAddr = {};
     int listen_sock = getListenSocket(getAddr(8080));
 
     FD_SET(listen_sock, &read_set);
@@ -144,10 +136,12 @@ void Server::mainLoop() {
             max = listen_sock;
         else
             max = *std::max_element(client_sockets.begin(), client_sockets.end());
-        if (select(max + 1, &tmp_read_set, &tmp_write_set, NULL, NULL) <= 0)
+        if (select(max + 1, &tmp_read_set, &tmp_write_set, NULL, NULL) <= 0) {
             continue;
-        if (acceptNewConnection(listen_sock, &tmp_read_set, &clientAddr) < 0)
+        }
+        if (acceptNewConnection(listen_sock, &tmp_read_set, &clientAddr) < 0) {
             continue;
+        }
 
         for (std::vector<int>::iterator it = client_sockets.begin(); it != client_sockets.end(); it++) {
             if (FD_ISSET(*it, &tmp_read_set)) {
@@ -156,6 +150,7 @@ void Server::mainLoop() {
                 }
             }
             if (FD_ISSET(*it, &tmp_write_set)) {
+                std::cout << "fd = " << *it << "\n";
                 if (sendResponse(it, "templates/index.html")) {
                     continue;
                 }
