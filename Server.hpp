@@ -26,7 +26,9 @@ private:
     int acceptNewConnection(int sock, fd_set *set, struct sockaddr_in *addr);
     int recieve(std::vector<int>::iterator it, char **buf);
     int sendResponse(std::vector<int>::iterator it, std::string filename);
-    int renderTemplate(std::string filename, std::vector<int>::iterator it, char **buf);
+    int
+    renderTemplate(std::string filename, std::vector<int>::iterator it, char **buf);
+    void log(std::string s);
 
     std::string ip;
     int port;
