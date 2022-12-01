@@ -89,6 +89,7 @@ int Server::recieve(std::map<int, fd_info>::iterator it, char **buf) {
         }
         file.close();
         it->second.readyToWriting = true;
+        FD_SET(it->first, &write_set);
     } else {
         printErr("error open index.html\n");
         return 1;
@@ -110,7 +111,6 @@ int Server::sendResponse(std::map<int, fd_info>::iterator it, std::string filena
              << "\r\n\r\n"
              << response_body.str();
 
-    printWar("Send message\n");
     if (send(it->first, response.str().c_str(), response.str().length(), 0) < 0)
         return -1;
     FD_CLR(it->first, &write_set);
@@ -147,10 +147,7 @@ void Server::mainLoop() {
                 if (recieve(it, &buf)) {
                     printErr("Recieve error\n");
                     continue;
-                }
-                if (it->second.readyToWriting)
-                    FD_SET(it->first, &write_set);
-            }
+                }            }
             if (it->second.readyToWriting && FD_ISSET(it->first, &tmp_write_set))
                 if (sendResponse(it, "templates/index.html"))
                     continue;
