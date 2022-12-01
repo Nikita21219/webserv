@@ -62,16 +62,10 @@ int Server::acceptNewConnection(int sock, fd_set *set, struct sockaddr_in *addr)
 }
 
 int Server::recieve(std::map<int, fd_info>::iterator it, char **buf) {
-    ssize_t recv_res = -1;
-    while (true) {
-        recv_res = recv(it->first, *buf, BUF_SZ, 0);
-        if (recv_res <= 0)
-            break;
-        *(*buf + recv_res) = 0;
-    }
+    ssize_t recv_res = recv(it->first, *buf, BUF_SZ, 0);
     if (recv_res < 0) {
         std::cerr << "ERROR from recieve: " << strerror(errno) << "\n";
-        return errno == EAGAIN ? 0 : 1;
+        return 1;
     }
     if (recv_res == 0) {
         FD_CLR(it->first, &read_set);
@@ -79,8 +73,9 @@ int Server::recieve(std::map<int, fd_info>::iterator it, char **buf) {
         close(it->first);
         client_sockets.erase(it);
         std::cerr << "Client go away!\n";
-        return 1;
+        return 0;
     }
+    *(*buf + recv_res) = 0;
     return 0;
 }
 
