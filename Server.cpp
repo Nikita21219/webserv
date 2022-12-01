@@ -77,7 +77,7 @@ int Server::recieve(std::map<int, fd_info>::iterator it, char **buf) {
         close(it->first);
         client_sockets.erase(it);
         printWar("Client go away\n");
-        return 0;
+        return 1;
     }
     *(*buf + recv_res) = 0;
 
@@ -147,7 +147,8 @@ void Server::mainLoop() {
                 if (recieve(it, &buf)) {
                     printErr("Recieve error\n");
                     continue;
-                }            }
+                }
+            }
             if (it->second.readyToWriting && FD_ISSET(it->first, &tmp_write_set))
                 if (sendResponse(it, "templates/index.html"))
                     continue;
