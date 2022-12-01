@@ -93,7 +93,6 @@ int Server::recieve(std::map<int, fd_info>::iterator it, char **buf) {
         printErr("error open index.html\n");
         return 1;
     }
-
     return 0;
 }
 
@@ -104,11 +103,6 @@ int Server::sendResponse(std::map<int, fd_info>::iterator it, std::string filena
 
     response_body << it->second.response;
 
-    // response_body << "<title>webserv</title>\n"
-    //               << "<h1>Test page on first server bclarind</h1>\n"
-    //               << "<p>This is body of the test page...</p>\n"
-    //               << "<em><small>Test C++ Http Server</small></em>\n";
-
     response << "HTTP/1.1 200 OK\r\n"
              << "Version: HTTP/1.1\r\n"
              << "Content-Type: text/html; charset=utf-8\r\n"
@@ -116,11 +110,12 @@ int Server::sendResponse(std::map<int, fd_info>::iterator it, std::string filena
              << "\r\n\r\n"
              << response_body.str();
 
+    printWar("Send message\n");
     if (send(it->first, response.str().c_str(), response.str().length(), 0) < 0)
         return -1;
     FD_CLR(it->first, &write_set);
     it->second.readyToWriting = false;
-    it->second.response = "";
+    it->second.response.clear();
     return 0;
 }
 
@@ -153,7 +148,8 @@ void Server::mainLoop() {
                     printErr("Recieve error\n");
                     continue;
                 }
-                FD_SET(it->first, &write_set);
+                if (it->second.readyToWriting)
+                    FD_SET(it->first, &write_set);
             }
             if (it->second.readyToWriting && FD_ISSET(it->first, &tmp_write_set))
                 if (sendResponse(it, "templates/index.html"))
