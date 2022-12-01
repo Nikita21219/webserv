@@ -2,7 +2,6 @@
 // Created by Nikita Madorsky on 25.11.2022.
 //
 
-#include <fstream>
 #include "Server.hpp"
 #define BUF_SZ 2048
 
@@ -55,15 +54,17 @@ int Server::acceptNewConnection(int sock, fd_set *set, struct sockaddr_in *addr)
             return close(new_sock);
         if (fcntl(new_sock, F_SETFL, O_NONBLOCK) < 0)
             return -1;
-        client_sockets.insert(client_sockets.begin(), new_sock);
+        fd_info fd_state;
+        fd_state.readyToWriting = false;
+        client_sockets.insert(client_sockets.begin(), std::pair<int, fd_info>(new_sock, fd_state));
     }
     return new_sock;
 }
 
-int Server::recieve(std::vector<int>::iterator it, char **buf) {
+int Server::recieve(std::map<int, fd_info>::iterator it, char **buf) {
     ssize_t recv_res = -1;
     while (true) {
-        recv_res = recv(*it, *buf, BUF_SZ, 0);
+        recv_res = recv(it->first, *buf, BUF_SZ, 0);
         if (recv_res <= 0)
             break;
         *(*buf + recv_res) = 0;
@@ -73,9 +74,9 @@ int Server::recieve(std::vector<int>::iterator it, char **buf) {
         return errno == EAGAIN ? 0 : 1;
     }
     if (recv_res == 0) {
-        FD_CLR(*it, &read_set);
-        FD_CLR(*it, &write_set);
-        close(*it);
+        FD_CLR(it->first, &read_set);
+        FD_CLR(it->first, &write_set);
+        close(it->first);
         client_sockets.erase(it);
         std::cerr << "Client go away!\n";
         return 1;
@@ -83,7 +84,7 @@ int Server::recieve(std::vector<int>::iterator it, char **buf) {
     return 0;
 }
 
-int Server::sendResponse(std::vector<int>::iterator it, std::string filename) {
+int Server::sendResponse(std::map<int, fd_info>::iterator it, std::string filename) {
     (void) filename;
     std::stringstream response_body;
     std::stringstream response;
@@ -112,9 +113,9 @@ int Server::sendResponse(std::vector<int>::iterator it, std::string filename) {
              << "\r\n\r\n"
              << response_body.str();
 
-    if (send(*it, response.str().c_str(), response.str().length(), 0) < 0)
+    if (send(it->first, response.str().c_str(), response.str().length(), 0) < 0)
         return -1;
-    FD_CLR(*it, &write_set);
+    FD_CLR(it->first, &write_set);
     return 0;
 }
 
@@ -127,34 +128,27 @@ void Server::mainLoop() {
 
     FD_SET(listen_sock, &read_set);
     while (true) {
-        for (std::vector<int>::iterator i = client_sockets.begin(); i != client_sockets.end(); i++) {
-            FD_SET(*i, &read_set);
+        for (std::map<int, fd_info>::iterator i = client_sockets.begin(); i != client_sockets.end(); i++) {
+            FD_SET(i->first, &read_set);
         }
         tmp_read_set = read_set;
         tmp_write_set = write_set;
         if (client_sockets.empty())
             max = listen_sock;
         else
-            max = *std::max_element(client_sockets.begin(), client_sockets.end());
-        if (select(max + 1, &tmp_read_set, &tmp_write_set, NULL, NULL) <= 0) {
+            max = (--client_sockets.end())->first;
+        if (select(max + 1, &tmp_read_set, &tmp_write_set, NULL, NULL) <= 0)
             continue;
-        }
-        if (acceptNewConnection(listen_sock, &tmp_read_set, &clientAddr) < 0) {
+        if (acceptNewConnection(listen_sock, &tmp_read_set, &clientAddr) < 0)
             continue;
-        }
 
-        for (std::vector<int>::iterator it = client_sockets.begin(); it != client_sockets.end(); it++) {
-            if (FD_ISSET(*it, &tmp_read_set)) {
-                if (recieve(it, &buf) == 0) {
-                    FD_SET(*it, &write_set);
-                }
-            }
-            if (FD_ISSET(*it, &tmp_write_set)) {
-                std::cout << "fd = " << *it << "\n";
-                if (sendResponse(it, "templates/index.html")) {
+        for (std::map<int, fd_info>::iterator it = client_sockets.begin(); it != client_sockets.end(); it++) {
+            if (FD_ISSET(it->first, &tmp_read_set))
+                if (recieve(it, &buf) == 0)
+                    FD_SET(it->first, &write_set);
+            if (FD_ISSET(it->first, &tmp_write_set))
+                if (sendResponse(it, "templates/index.html"))
                     continue;
-                }
-            }
         }
     }
 }
