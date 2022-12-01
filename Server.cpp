@@ -5,6 +5,10 @@
 #include "Server.hpp"
 #define BUF_SZ 2048
 
+void Server::printErr(std::string s) {std::cout << ERROR << s << TERM_RESET;}
+
+void Server::printWar(std::string s) {std::cout << WARNING << s << TERM_RESET;}
+
 Server::Server(std::string ip, int port): ip(ip), port(port) {
     (void) this->port; //TODO tmp line
     FD_ZERO(&read_set);
@@ -64,7 +68,7 @@ int Server::acceptNewConnection(int sock, fd_set *set, struct sockaddr_in *addr)
 int Server::recieve(std::map<int, fd_info>::iterator it, char **buf) {
     ssize_t recv_res = recv(it->first, *buf, BUF_SZ, 0);
     if (recv_res < 0) {
-        std::cerr << "ERROR from recieve: " << strerror(errno) << "\n";
+        printErr("strerror from recieve: " + std::string(strerror(errno)) + "\n");
         return 1;
     }
     if (recv_res == 0) {
@@ -72,10 +76,24 @@ int Server::recieve(std::map<int, fd_info>::iterator it, char **buf) {
         FD_CLR(it->first, &write_set);
         close(it->first);
         client_sockets.erase(it);
-        std::cerr << "Client go away!\n";
+        printWar("Client go away\n");
         return 0;
     }
     *(*buf + recv_res) = 0;
+
+    std::ifstream file("templates/index.html");
+    std::string s;
+    if (file.is_open()) {
+        while (std::getline(file, s)) {
+            it->second.response += s + "\n";
+        }
+        file.close();
+        it->second.readyToWriting = true;
+    } else {
+        printErr("error open index.html\n");
+        return 1;
+    }
+
     return 0;
 }
 
@@ -84,22 +102,12 @@ int Server::sendResponse(std::map<int, fd_info>::iterator it, std::string filena
     std::stringstream response_body;
     std::stringstream response;
 
-   // std::ifstream file(filename);
-   // char s[BUF_SZ];
-   // if (file.is_open()) {
-   //     while (!file.eof()) {
-   //         file.getline(s, BUF_SZ, '\n');
-   //         response_body << s << "\n";
-   //     }
-   //     file.close();
-   // } else {
-   //     return -1;
-   // }
+    response_body << it->second.response;
 
-    response_body << "<title>webserv</title>\n"
-                  << "<h1>Test page on first server bclarind</h1>\n"
-                  << "<p>This is body of the test page...</p>\n"
-                  << "<em><small>Test C++ Http Server</small></em>\n";
+    // response_body << "<title>webserv</title>\n"
+    //               << "<h1>Test page on first server bclarind</h1>\n"
+    //               << "<p>This is body of the test page...</p>\n"
+    //               << "<em><small>Test C++ Http Server</small></em>\n";
 
     response << "HTTP/1.1 200 OK\r\n"
              << "Version: HTTP/1.1\r\n"
@@ -108,9 +116,13 @@ int Server::sendResponse(std::map<int, fd_info>::iterator it, std::string filena
              << "\r\n\r\n"
              << response_body.str();
 
+    printWar("before send\n");
+
     if (send(it->first, response.str().c_str(), response.str().length(), 0) < 0)
         return -1;
     FD_CLR(it->first, &write_set);
+    it->second.readyToWriting = false;
+    it->second.response = "";
     return 0;
 }
 
@@ -138,10 +150,14 @@ void Server::mainLoop() {
             continue;
 
         for (std::map<int, fd_info>::iterator it = client_sockets.begin(); it != client_sockets.end(); it++) {
-            if (FD_ISSET(it->first, &tmp_read_set))
-                if (recieve(it, &buf) == 0)
-                    FD_SET(it->first, &write_set);
-            if (FD_ISSET(it->first, &tmp_write_set))
+            if (FD_ISSET(it->first, &tmp_read_set)) {
+                if (recieve(it, &buf)) {
+                    printErr("Recieve error\n");
+                    continue;
+                }
+                FD_SET(it->first, &write_set);
+            }
+            if (it->second.readyToWriting && FD_ISSET(it->first, &tmp_write_set))
                 if (sendResponse(it, "templates/index.html"))
                     continue;
         }
