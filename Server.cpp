@@ -116,8 +116,6 @@ int Server::sendResponse(std::map<int, fd_info>::iterator it, std::string filena
              << "\r\n\r\n"
              << response_body.str();
 
-    printWar("before send\n");
-
     if (send(it->first, response.str().c_str(), response.str().length(), 0) < 0)
         return -1;
     FD_CLR(it->first, &write_set);
