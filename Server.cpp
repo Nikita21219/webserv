@@ -9,6 +9,13 @@ void Server::printErr(std::string s) {std::cout << ERROR << s << TERM_RESET;}
 
 void Server::printWar(std::string s) {std::cout << WARNING << s << TERM_RESET;}
 
+int Server::getMaxSock(int listenSock) {
+    if (client_sockets.empty())
+        return listenSock;
+    else
+        return (--client_sockets.end())->first;
+}
+
 Server::Server(std::string ip, int port): ip(ip), port(port) {
     (void) this->port; //TODO tmp line
     FD_ZERO(&read_set);
@@ -121,7 +128,6 @@ int Server::sendResponse(std::map<int, fd_info>::iterator it, std::string filena
 }
 
 void Server::mainLoop() {
-    int max;
     char *buf = new char[BUF_SZ];
     fd_set tmp_read_set, tmp_write_set;
     struct sockaddr_in clientAddr = {};
@@ -134,11 +140,7 @@ void Server::mainLoop() {
         }
         tmp_read_set = read_set;
         tmp_write_set = write_set;
-        if (client_sockets.empty())
-            max = listen_sock;
-        else
-            max = (--client_sockets.end())->first;
-        if (select(max + 1, &tmp_read_set, &tmp_write_set, NULL, NULL) <= 0)
+        if (select(getMaxSock(listen_sock) + 1, &tmp_read_set, &tmp_write_set, NULL, NULL) <= 0)
             continue;
         if (acceptNewConnection(listen_sock, &tmp_read_set, &clientAddr) < 0)
             continue;

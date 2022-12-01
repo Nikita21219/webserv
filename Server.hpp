@@ -37,6 +37,7 @@ private:
     int acceptNewConnection(int sock, fd_set *set, struct sockaddr_in *addr);
     int recieve(std::map<int, fd_info>::iterator *it, char **buf);
     int sendResponse(std::map<int, fd_info>::iterator it, std::string filename);
+    int getMaxSock(int listenSock);
     void printErr(std::string s); // TODO delete this func
     void printWar(std::string s); // TODO delete this func
 
