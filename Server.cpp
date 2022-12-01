@@ -76,7 +76,7 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
         FD_CLR((*it)->first, &read_set);
         FD_CLR((*it)->first, &write_set);
         close((*it)->first);
-        client_sockets.erase((*it++)->first);
+        client_sockets.erase((*it)++->first);
         printWar("Client go away\n");
         return 1;
     }
@@ -146,12 +146,9 @@ void Server::mainLoop() {
         std::map<int, fd_info>::iterator it = client_sockets.begin();
         std::map<int, fd_info>::iterator end = client_sockets.end();
         while (it != end) {
-            if (FD_ISSET(it->first, &tmp_read_set)) {
-                if (recieve(&it, &buf)) {
-                    printErr("Recieve error\n");
-                    break;
-                }
-            }
+            if (FD_ISSET(it->first, &tmp_read_set))
+                if (recieve(&it, &buf))
+                    continue;
             if (it->second.readyToWriting && FD_ISSET(it->first, &tmp_write_set))
                 if (sendResponse(it, "templates/index.html"))
                     continue;
