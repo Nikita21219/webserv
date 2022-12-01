@@ -60,22 +60,23 @@ int Server::acceptNewConnection(int sock, fd_set *set, struct sockaddr_in *addr)
             return -1;
         fd_info fd_state;
         fd_state.readyToWriting = false;
+        fd_state.needToDel = false;
         client_sockets.insert(client_sockets.begin(), std::pair<int, fd_info>(new_sock, fd_state));
     }
     return new_sock;
 }
 
-int Server::recieve(std::map<int, fd_info>::iterator it, char **buf) {
-    ssize_t recv_res = recv(it->first, *buf, BUF_SZ, 0);
+int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
+    ssize_t recv_res = recv((*it)->first, *buf, BUF_SZ, 0);
     if (recv_res < 0) {
         printErr("strerror from recieve: " + std::string(strerror(errno)) + "\n");
         return 1;
     }
     if (recv_res == 0) {
-        FD_CLR(it->first, &read_set);
-        FD_CLR(it->first, &write_set);
-        close(it->first);
-        client_sockets.erase(it);
+        FD_CLR((*it)->first, &read_set);
+        FD_CLR((*it)->first, &write_set);
+        close((*it)->first);
+        client_sockets.erase((*it++)->first);
         printWar("Client go away\n");
         return 1;
     }
@@ -85,11 +86,11 @@ int Server::recieve(std::map<int, fd_info>::iterator it, char **buf) {
     std::string s;
     if (file.is_open()) {
         while (std::getline(file, s)) {
-            it->second.response += s + "\n";
+            (*it)->second.response += s + "\n";
         }
         file.close();
-        it->second.readyToWriting = true;
-        FD_SET(it->first, &write_set);
+        (*it)->second.readyToWriting = true;
+        FD_SET((*it)->first, &write_set);
     } else {
         printErr("error open index.html\n");
         return 1;
@@ -142,16 +143,19 @@ void Server::mainLoop() {
         if (acceptNewConnection(listen_sock, &tmp_read_set, &clientAddr) < 0)
             continue;
 
-        for (std::map<int, fd_info>::iterator it = client_sockets.begin(); it != client_sockets.end(); it++) {
+        std::map<int, fd_info>::iterator it = client_sockets.begin();
+        std::map<int, fd_info>::iterator end = client_sockets.end();
+        while (it != end) {
             if (FD_ISSET(it->first, &tmp_read_set)) {
-                if (recieve(it, &buf)) {
+                if (recieve(&it, &buf)) {
                     printErr("Recieve error\n");
-                    continue;
+                    break;
                 }
             }
             if (it->second.readyToWriting && FD_ISSET(it->first, &tmp_write_set))
                 if (sendResponse(it, "templates/index.html"))
                     continue;
+            it++;
         }
     }
 }

@@ -18,12 +18,11 @@
 #include <vector>
 #include <map>
 
-
-
 class Server {
 private:
     typedef struct fd_info_t {
         bool readyToWriting;
+        bool needToDel;
         std::string response;
     } fd_info;
 
@@ -36,7 +35,7 @@ private:
     int getListenSocket(struct sockaddr_in addr);
     struct sockaddr_in getAddr(int port);
     int acceptNewConnection(int sock, fd_set *set, struct sockaddr_in *addr);
-    int recieve(std::map<int, fd_info>::iterator it, char **buf);
+    int recieve(std::map<int, fd_info>::iterator *it, char **buf);
     int sendResponse(std::map<int, fd_info>::iterator it, std::string filename);
     void printErr(std::string s); // TODO delete this func
     void printWar(std::string s); // TODO delete this func
