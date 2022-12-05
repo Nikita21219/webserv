@@ -5,9 +5,9 @@
 #include "Server.hpp"
 #define BUF_SZ 2048
 
-void Server::printErr(std::string s) {std::cout << ERROR << s << TERM_RESET;}
+void Server::printErr(std::string s) {std::cout << ERROR << s << TERM_RESET;} // TODO tmp func
 
-void Server::printWar(std::string s) {std::cout << WARNING << s << TERM_RESET;}
+void Server::printWar(std::string s) {std::cout << WARNING << s << TERM_RESET;} // TODO tmp func
 
 int Server::getMaxSock(int listenSock) {
     if (client_sockets.empty())
@@ -92,9 +92,8 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
     std::ifstream file("templates/index.html");
     std::string s;
     if (file.is_open()) {
-        while (std::getline(file, s)) {
+        while (std::getline(file, s))
             (*it)->second.response += s + "\n";
-        }
         file.close();
         (*it)->second.readyToWriting = true;
         FD_SET((*it)->first, &write_set);
@@ -128,7 +127,7 @@ int Server::sendResponse(std::map<int, fd_info>::iterator it, std::string filena
 }
 
 void Server::mainLoop() {
-    char *buf = new char[BUF_SZ];
+    char *buf = new char[BUF_SZ + 1];
     fd_set tmp_read_set, tmp_write_set;
     struct sockaddr_in clientAddr = {};
     int listen_sock = getListenSocket(getAddr(8080));
