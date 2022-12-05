@@ -3,7 +3,6 @@
 //
 
 #include "Server.hpp"
-#define BUF_SZ 2048
 
 void Server::printErr(std::string s) {std::cout << ERROR << s << TERM_RESET;} // TODO tmp func
 

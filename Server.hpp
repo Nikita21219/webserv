@@ -18,6 +18,8 @@
 #include <vector>
 #include <map>
 
+#define BUF_SZ 2048
+
 class Server {
 private:
     typedef struct fd_info_t {
