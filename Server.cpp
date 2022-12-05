@@ -126,7 +126,7 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
     std::ifstream file(path);
     std::string s;
     if (file.is_open()) {
-        while (std::getline(s, '\n'))
+        while (std::getline(file, s))
             (*it)->second.response += s + "\n";
         file.close();
         (*it)->second.status = 200;
