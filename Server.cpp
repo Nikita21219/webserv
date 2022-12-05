@@ -112,13 +112,11 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
     std::vector<std::string> arr = split(fline, " ");
     std::string path = arr[1];
     if (path == "/")
-        path = "templates/index.html"; //TODO redirect in config file
+        path = "static/index.html"; //TODO redirect in config file
     else if (path == "/favicon.ico")
-        path = "templates/img/favicon.ico"; //TODO redirect in config file
+        path = "static/img/favicon.ico"; //TODO redirect in config file
     else
-        path = "templates" + path;
-
-    // std::cout << "PATH: " << path << "\n";
+        path = "static" + path;
 
     std::string extension = split(path, ".").back();
     if (extension == "html")
@@ -136,10 +134,11 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
         while (std::getline(file, s))
             (*it)->second.response += s + "\n";
         file.close();
+        (*it)->second.status = 200;
         (*it)->second.readyToWriting = true;
         FD_SET((*it)->first, &write_set);
     } else {
-        std::ifstream f("templates/404.html");
+        std::ifstream f("static/404.html");
         if (!f.is_open()) {
             printErr("cant open 404.html");
             return 1;
@@ -147,20 +146,20 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
         while (std::getline(f, s))
             (*it)->second.response += s + "\n";
         f.close();
+        (*it)->second.status = 404;
         (*it)->second.readyToWriting = true;
         FD_SET((*it)->first, &write_set);
     }
     return 0;
 }
 
-int Server::sendResponse(std::map<int, fd_info>::iterator it, std::string filename) {
-    (void) filename;
+int Server::sendResponse(std::map<int, fd_info>::iterator it) {
     std::stringstream response_body;
     std::stringstream response;
 
     response_body << it->second.response;
 
-    response << "HTTP/1.1 200 OK\r\n"
+    response << "HTTP/1.1 " << it->second.status << " OK\r\n"
              << "Version: HTTP/1.1\r\n"
              << "Content-Type: " << it->second.mimeType << "; charset=utf-8\r\n"
              << "Content-Length: " << response_body.str().length()
@@ -200,7 +199,7 @@ void Server::mainLoop() {
                 if (recieve(&it, &buf))
                     continue;
             if (it->second.readyToWriting && FD_ISSET(it->first, &tmp_write_set))
-                if (sendResponse(it, "templates/index.html"))
+                if (sendResponse(it))
                     continue;
             it++;
         }
