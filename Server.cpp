@@ -35,13 +35,10 @@ int Server::getListenSocket(struct sockaddr_in addr) {
         return -1;
     if (setsockopt(listen_sock, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt)))
         return -1;
-
     if (fcntl(listen_sock, F_SETFL, O_NONBLOCK) < 0)
         return -1;
-
     if (bind(listen_sock, (struct sockaddr*) &addr, sizeof(addr)))
         return -1;
-
     if (listen(listen_sock, SOMAXCONN))
         return -1;
     return listen_sock;
@@ -88,12 +85,8 @@ std::vector<std::string> Server::split(std::string s, std::string sep) {
 int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
     ssize_t recv_res = recv((*it)->first, *buf, BUF_SZ, 0);
     if (recv_res < 0) {
-        // FD_CLR((*it)->first, &read_set);
-        // FD_CLR((*it)->first, &write_set);
-        // close((*it)->first);
-        // client_sockets.erase((*it)++->first);
-        printWar("Client go away\n");
         printErr("strerror from recieve: " + std::string(strerror(errno)) + "\n");
+        printWar("Client go away\n");
         return 1;
     }
     if (recv_res == 0) {
@@ -118,20 +111,22 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
     else
         path = "static" + path;
 
+    // printWar("PATH: " + path + "\n");
+
     std::string extension = split(path, ".").back();
-    if (extension == "html")
-        (*it)->second.mimeType = "text/html";
-    else if (extension == "css")
+    if (extension == "css")
         (*it)->second.mimeType = "text/css";
     else if (extension == "png")
-        (*it)->second.mimeType = "text/png";
+        (*it)->second.mimeType = "image/png";
+    else if (extension == "jpeg" || extension == "jpg")
+        (*it)->second.mimeType = "image/jpeg";
     else
         (*it)->second.mimeType = "text/html";
 
     std::ifstream file(path);
     std::string s;
     if (file.is_open()) {
-        while (std::getline(file, s))
+        while (std::getline(s, '\n'))
             (*it)->second.response += s + "\n";
         file.close();
         (*it)->second.status = 200;
@@ -171,6 +166,7 @@ int Server::sendResponse(std::map<int, fd_info>::iterator it) {
     FD_CLR(it->first, &write_set);
     it->second.readyToWriting = false;
     it->second.response.clear();
+    it->second.mimeType = "text/html";
     return 0;
 }
 
