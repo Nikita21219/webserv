@@ -22,8 +22,8 @@ class Server {
 private:
     typedef struct fd_info_t {
         bool readyToWriting;
-        bool needToDel;
         std::string response;
+        std::string mimeType;
     } fd_info;
 
 public:
@@ -40,6 +40,8 @@ private:
     int getMaxSock(int listenSock);
     void printErr(std::string s); // TODO delete this func
     void printWar(std::string s); // TODO delete this func
+    std::string parseRequest(char *buf); // TODO delete this func
+    static std::vector<std::string> split(std::string s, std::string sep);
 
     std::string ip;
     int port;

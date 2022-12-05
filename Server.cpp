@@ -67,15 +67,32 @@ int Server::acceptNewConnection(int sock, fd_set *set, struct sockaddr_in *addr)
             return -1;
         fd_info fd_state;
         fd_state.readyToWriting = false;
-        fd_state.needToDel = false;
+        fd_state.mimeType = "text/html";
         client_sockets.insert(client_sockets.begin(), std::pair<int, fd_info>(new_sock, fd_state));
     }
     return new_sock;
 }
 
+std::vector<std::string> Server::split(std::string s, std::string sep) {
+    std::vector<std::string> arr;
+    std::string token;
+    size_t pos = 0;
+    while ((pos = s.find(sep)) != std::string::npos) {
+        arr.push_back(s.substr(0, pos));
+        s.erase(0, pos + sep.length());
+    }
+    arr.push_back(s.substr(0, pos));
+    return arr;
+}
+
 int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
     ssize_t recv_res = recv((*it)->first, *buf, BUF_SZ, 0);
     if (recv_res < 0) {
+        // FD_CLR((*it)->first, &read_set);
+        // FD_CLR((*it)->first, &write_set);
+        // close((*it)->first);
+        // client_sockets.erase((*it)++->first);
+        printWar("Client go away\n");
         printErr("strerror from recieve: " + std::string(strerror(errno)) + "\n");
         return 1;
     }
@@ -89,7 +106,31 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
     }
     *(*buf + recv_res) = 0;
 
-    std::ifstream file("templates/index.html");
+    // std::cout << "\bBUF:\n" << *buf << "\n\n";
+
+    std::string fline = split(std::string(*buf), "\n").front();
+    std::vector<std::string> arr = split(fline, " ");
+    std::string path = arr[1];
+    if (path == "/")
+        path = "templates/index.html"; //TODO redirect in config file
+    else if (path == "/favicon.ico")
+        path = "templates/img/favicon.ico"; //TODO redirect in config file
+    else
+        path = "templates" + path;
+
+    // std::cout << "PATH: " << path << "\n";
+
+    std::string extension = split(path, ".").back();
+    if (extension == "html")
+        (*it)->second.mimeType = "text/html";
+    else if (extension == "css")
+        (*it)->second.mimeType = "text/css";
+    else if (extension == "png")
+        (*it)->second.mimeType = "text/png";
+    else
+        (*it)->second.mimeType = "text/html";
+
+    std::ifstream file(path);
     std::string s;
     if (file.is_open()) {
         while (std::getline(file, s))
@@ -98,8 +139,16 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
         (*it)->second.readyToWriting = true;
         FD_SET((*it)->first, &write_set);
     } else {
-        printErr("error open index.html\n");
-        return 1;
+        std::ifstream f("templates/404.html");
+        if (!f.is_open()) {
+            printErr("cant open 404.html");
+            return 1;
+        }
+        while (std::getline(f, s))
+            (*it)->second.response += s + "\n";
+        f.close();
+        (*it)->second.readyToWriting = true;
+        FD_SET((*it)->first, &write_set);
     }
     return 0;
 }
@@ -113,7 +162,7 @@ int Server::sendResponse(std::map<int, fd_info>::iterator it, std::string filena
 
     response << "HTTP/1.1 200 OK\r\n"
              << "Version: HTTP/1.1\r\n"
-             << "Content-Type: text/html; charset=utf-8\r\n"
+             << "Content-Type: " << it->second.mimeType << "; charset=utf-8\r\n"
              << "Content-Length: " << response_body.str().length()
              << "\r\n\r\n"
              << response_body.str();
