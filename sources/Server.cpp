@@ -2,7 +2,7 @@
 // Created by Nikita Madorsky on 25.11.2022.
 //
 
-#include "Server.hpp"
+#include "../headers/Server.hpp"
 
 void Server::printErr(std::string s) {std::cout << ERROR << s << TERM_RESET;} // TODO tmp func
 
