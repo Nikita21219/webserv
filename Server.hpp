@@ -44,12 +44,14 @@ private:
     void printErr(std::string s); // TODO delete this func
     void printWar(std::string s); // TODO delete this func
     static std::vector<std::string> split(std::string s, std::string sep);
+    void codeResponseInit();
 
     std::string ip;
     int port;
     fd_set read_set;
     fd_set write_set;
     std::map<int, fd_info> client_sockets;
+    std::map<int, std::string> codeResponse;
 };
 
 #endif //WEBSERV_SERVER_HPP

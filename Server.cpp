@@ -20,9 +20,17 @@ Server::Server(std::string ip, int port): ip(ip), port(port) {
     FD_ZERO(&read_set);
     FD_ZERO(&write_set);
     client_sockets.clear();
+    codeResponseInit();
 }
 
 Server::~Server() {}
+
+void Server::codeResponseInit() {
+    codeResponse.insert(std::pair<int, std::string>(200, "200 OK"));
+    codeResponse.insert(std::pair<int, std::string>(401, "401 Unauthorized"));
+    codeResponse.insert(std::pair<int, std::string>(404, "404 Not Found"));
+    codeResponse.insert(std::pair<int, std::string>(405, "405 Method Not Allowed"));
+}
 
 int Server::getListenSocket(struct sockaddr_in addr) {
     int listen_sock;
@@ -153,7 +161,7 @@ int Server::sendResponse(std::map<int, fd_info>::iterator it) {
 
     response_body << it->second.response;
 
-    response << "HTTP/1.1 " << it->second.status << " OK\r\n"
+    response << "HTTP/1.1 " << codeResponse.find(it->second.status)->second << "\r\n"
              << "Version: HTTP/1.1\r\n"
              << "Content-Type: " << it->second.mimeType << "; charset=utf-8\r\n"
              << "Content-Length: " << response_body.str().length()
