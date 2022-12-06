@@ -10,44 +10,40 @@ bool get_conf(char *file, std::vector<Parser> &conf) {
 		return true;
 	}
 	while(1) {
-		serv = get_one_serv(in_file);
-		if (serv.find("error") != std::string::npos && serv.find("error") == 0) {
-			std::cerr << "Wrong config file!\n";
+		try {
+			if (get_one_serv(in_file, serv))
+				break;
+			conf.push_back(Parser(serv));
+		} catch (std::exception &e) {
+			std::cerr << e.what() << std::endl;
 			return true;
 		}
-		if (serv.find("end") != std::string::npos && serv.find("end") == 0)
-			break;
-		conf.push_back(Parser(serv));
-		if ((*(--(conf.end()))).geterror()) {
-			std::cerr << "Wrong config file!\n";
-			return true;
-		}
+		serv.clear();
 	}
 	return false;
 }
 
-std::string get_one_serv(std::ifstream &in_file) {
-	std::string res;
+bool get_one_serv(std::ifstream &in_file, std::string &serv) {
 	std::string tmp;
 	std::getline(in_file, tmp);
 	while (tmp.size() == 0) {
 		std::getline(in_file, tmp);
 		if (in_file.eof())
-			return "end";
+			return true;
 	}
 	if (tmp.find("server") == std::string::npos || tmp.find('{') == std::string::npos || tmp.size() == 0)
-		return "error";
+		throw Parser::WrongBracketsException();
 	int par = 1;
-	res += tmp + '\n';
+	serv += tmp + '\n';
 	while (1) {
 		std::getline(in_file, tmp);
 		if (tmp.size() == 0) {
 			std::getline(in_file, tmp);
 			if (in_file.eof())
-				return "error";
+				throw Parser::WrongBracketsException();
 		}
 		else if (tmp.find("server") != std::string::npos && tmp.find("server") == 0)
-			return "error";
+			throw Parser::WrongBracketsException();
 		std::string sub = tmp;
 		while (sub.find('{') != std::string::npos) {
 			sub = sub.substr(sub.find('{') + 1, sub.size());
@@ -58,8 +54,8 @@ std::string get_one_serv(std::ifstream &in_file) {
 			sub = sub.substr(sub.find('}') + 1, sub.size());
 			--par;
 		}
-		res += tmp + '\n';
+		serv += tmp + '\n';
 		if (!par)
-			return res;
+			return false;
 	}
 }

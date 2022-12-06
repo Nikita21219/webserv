@@ -1,20 +1,15 @@
 #include "webserv.h"
 
 int main(int argc, char **argv) {
-    (void) argc;
-    (void) argv;
+	std::vector<Parser> conf;
+	if (argc != 2) {
+		std::cerr << "wrong number of arguments!\n";
+		return 1;
+	}
+	if (get_conf(argv[1], conf))
+		return 1;
 
-	// std::vector<Parser> conf;
-	// if (argc != 2) {
-	// 	std::cerr << "wrong number of arguments!\n";
-	// 	return 1;
-	// }
-	// if (get_conf(argv[1], conf))
-	// 	return 1;
-    //
-
-    
-    Server serv = Server(std::vector<Parser>()); //TODO replace to conf
+    Server serv = Server(conf);
     serv.mainLoop();
 
 

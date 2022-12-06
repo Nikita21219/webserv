@@ -21,31 +21,51 @@ class Parser
 		Parser( Parser const & src );
 		~Parser();
 
-		bool				geterror() const;
-		std::string			getServfield(std::string const &key);
-		std::string			getLocfield(std::string const &path, std::string const &key);
-		Parser &			operator=( Parser const & rhs );
+		std::string					getServfield(std::string const &key);
+		std::string					getLocfield(std::string const &path, std::string const &key);
+		Parser &					operator=( Parser const & rhs );
 
-		static std::string	_key_words[12];
+		static std::string const	_key_words[12];
+
+		class WrongBracketsException: public std::exception {
+			public:
+				virtual const char *what() const throw();
+		};
 
 	private:
 
-		bool								_error;
 		std::map<std::string, std::string>	_conf;
 		std::map<std::string, Parser>		_locations;
 
-		bool								parsLocations(std::string &str);
-		bool								parsConf(std::string &str);
+		void								parsLocations(std::string &str);
+		void								parsConf(std::string &str);
 		std::string							getLocationkey(std::string &loc);
 		std::string							getLocationstr(std::string &str);
-		bool								findkeyword(std::string &str);
+		void								findkeyword(std::string &str);
 		std::string							findkeywordbyref(std::string const &key, Parser &loc);
 		std::string							findlocationrecursive(std::string const &path, std::string const &key, Parser &loc);
+
+		class LocationFieldException: public std::exception {
+			public:
+				virtual const char *what() const throw();
+		};
+		class LocationRepeatException: public std::exception {
+			public:
+				virtual const char *what() const throw();
+		};
+		class ProblemWithConfigException: public std::exception {
+			public:
+				virtual const char *what() const throw();
+		};
+/*		class WrongBracketsException: public std::exception {
+			public:
+				virtual const char *what() const throw();
+		};*/
 
 };
 
 bool			get_conf(char *file, std::vector<Parser> &conf);
-std::string		get_one_serv(std::ifstream &in_file);
+bool			get_one_serv(std::ifstream &in_file, std::string &serv);
 
 std::ostream &	operator<<( std::ostream & o, Parser const & i );
 
