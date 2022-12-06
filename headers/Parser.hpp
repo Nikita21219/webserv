@@ -16,6 +16,7 @@ class Parser
 
 	public:
 
+		Parser();
 		Parser(std::string &data);
 		Parser( Parser const & src );
 		~Parser();
@@ -40,8 +41,6 @@ class Parser
 		bool								findkeyword(std::string &str);
 		std::string							findkeywordbyref(std::string const &key, Parser &loc);
 		std::string							findlocationrecursive(std::string const &path, std::string const &key, Parser &loc);
-
-		Parser();
 
 };
 
