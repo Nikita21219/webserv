@@ -21,4 +21,6 @@
 #include "Parser.hpp"
 #include "Server.hpp"
 
+#include <string.h>// hello ubuntu
+
 #endif //WEBSERV_WEBSERV_H

@@ -129,7 +129,7 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
     else
         (*it)->second.mimeType = "text/html";
 
-    std::ifstream file(path);
+    std::ifstream file(path.c_str());// fix for ubuntu
     std::string s;
     if (file.is_open()) {
         while (std::getline(file, s))
