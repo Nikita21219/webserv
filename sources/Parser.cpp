@@ -1,26 +1,23 @@
 #include "Parser.hpp"
 
-std::string Parser::_key_words[12] = {"listen", "server_name", "root", "autoindex", "methods", \
+std::string const Parser::_key_words[12] = {"listen", "server_name", "root", "autoindex", "methods", \
 		"max_body_size", "directory", "index", "bin_path", "redirection", "alias", "cgi_pass"};
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
-Parser::Parser(): _error(0)
+Parser::Parser()
 {
 }
 
-Parser::Parser(std::string &data): _error(0) {
-	if (parsLocations(data))
-		return ;
-	if (parsConf(data))
-		return ;
+Parser::Parser(std::string &data) {
+	parsLocations(data);
+	parsConf(data);
 }
 
 Parser::Parser( const Parser & src )
 {
-	_error = src.geterror();
 	_conf = src._conf;
 	_locations = src._locations;
 }
@@ -43,7 +40,6 @@ Parser &				Parser::operator=( Parser const & rhs )
 {
 	if ( this != &rhs )
 	{
-		_error = rhs.geterror();
 		_conf = rhs._conf;
 		_locations = rhs._locations;
 	}
@@ -62,35 +58,25 @@ std::ostream &			operator<<( std::ostream & o, Parser const & i )
 ** --------------------------------- METHODS ----------------------------------
 */
 
-bool Parser::parsLocations(std::string &str) {
+void Parser::parsLocations(std::string &str) {
 	while (1) {
 		if (str.find("location") != std::string::npos) {
 			std::string loc = getLocationstr(str);
 			std::string loc_key = getLocationkey(loc);
-			if (loc_key.find("error") != std::string::npos && loc_key.find("error") == 0) {
-				_error = 1;
-				return true;
-			}
-			if (_locations.size() > 0 && _locations.find(loc_key) != _locations.end()) {
-				_error = 1;
-				return true;
-			}
+			if (_locations.size() > 0 && _locations.find(loc_key) != _locations.end())
+				throw Parser::LocationRepeatException();
 			_locations.insert(_locations.end(), std::pair<std::string, Parser>(loc_key, Parser(loc)));
-			if (_locations[loc_key].geterror()) {
-				_error = 1;
-				return true;
-			}
 		}
 		else
 			break;
 	}
-	return false;
+	return ;
 }
 
 std::string Parser::getLocationkey(std::string &loc) {
 	std::string res = loc.substr(0, loc.find('\n'));
 	if (res[res.find("location") + 8] != ' ')
-		return "error";
+		throw Parser::LocationFieldException();
 	res.erase(0, res.find(' ') + 1);
 	int i = 0;
 	while (res[i] == ' ')
@@ -98,7 +84,7 @@ std::string Parser::getLocationkey(std::string &loc) {
 	if (i > 0)
 		res.erase(0, i);
 	if (res.find(' ') == std::string::npos)
-		return "error";
+		throw Parser::LocationFieldException();
 	res.erase(res.find(' '), res.find('\n'));
 	loc.erase(0, loc.find('\n'));
 	return res;
@@ -126,7 +112,7 @@ std::string Parser::getLocationstr(std::string &str) {
 	return res;
 }
 
-bool Parser::parsConf(std::string &str) {
+void Parser::parsConf(std::string &str) {
 	if (str.find("server") != std::string::npos)
 		str.erase(0, str.find('\n'));
 	while (1) {
@@ -147,22 +133,20 @@ bool Parser::parsConf(std::string &str) {
 				break;
 		}
 		if (!tmp.size() && !str.size())
-			return false;
+			return ;
 		else if (!tmp.size())
 			continue;
-		if (findkeyword(tmp)) {
-			_error = 1;
-			return true;
-		}
+		findkeyword(tmp);
 		str.erase(0, str.find('\n'));
 	}
-	return false;
 }
 
-bool Parser::findkeyword(std::string &str) {
+void Parser::findkeyword(std::string &str) {
 	for (int i = 0; i < 12; ++i) {
 		if (str.find(_key_words[i]) != std::string::npos) {
 			str.erase(0, str.find(_key_words[i]) + _key_words[i].size());
+			if (str[0] != ' ' && str.size() > 0)
+				throw Parser::ProblemWithConfigException();
 			for (size_t j = 0; j < str.size(); ++j) {
 				if (str[j] == ' ')
 					continue;
@@ -172,14 +156,13 @@ bool Parser::findkeyword(std::string &str) {
 				}
 			}
 			if (_conf.size() > 0 && _conf.find(_key_words[i]) != _conf.end())
-				return true;
+				throw Parser::ProblemWithConfigException();
 			_conf.insert(_conf.end(), std::pair<std::string, std::string>(_key_words[i], str));
-			return false;
+			return ;
 		}
 		if (i == 11)
-			return true;
+			throw Parser::ProblemWithConfigException();
 	}
-	return false;
 }
 
 std::string Parser::findkeywordbyref(std::string const &key, Parser &loc) {
@@ -217,14 +200,26 @@ std::string Parser::findlocationrecursive(std::string const &path, std::string c
 	}
 }
 
+const char* Parser::LocationFieldException::what() const throw() {
+	return "The location field in your config file is wrong!";
+}
+
+const char* Parser::LocationRepeatException::what() const throw() {
+	return "There are two identical locations in your config file!";
+}
+
+const char* Parser::ProblemWithConfigException::what() const throw() {
+	return "Problem with a field in your config file!";
+}
+
+const char* Parser::WrongBracketsException::what() const throw() {
+	return "Brackets are incorrect!";
+}
+
 
 /*
 ** --------------------------------- ACCESSOR ---------------------------------
 */
-
-bool Parser::geterror() const {
-	return _error;
-}
 
 std::string Parser::getServfield(std::string const &key) {
 	return findkeywordbyref(key, *this);
