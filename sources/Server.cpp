@@ -2,7 +2,7 @@
 // Created by Nikita Madorsky on 25.11.2022.
 //
 
-#include "../headers/Server.hpp"
+#include "../headers/webserv.h"
 
 void Server::printErr(std::string s) {std::cout << ERROR << s << TERM_RESET;} // TODO tmp func
 
@@ -15,8 +15,7 @@ int Server::getMaxSock(int listenSock) {
         return (--client_sockets.end())->first;
 }
 
-Server::Server(std::string ip, int port): ip(ip), port(port) {
-    (void) this->port; //TODO tmp line
+Server::Server(std::vector<Parser> conf): conf(conf) {
     FD_ZERO(&read_set);
     FD_ZERO(&write_set);
     client_sockets.clear();

@@ -1,9 +1,6 @@
-#include "Server.hpp"
-#include "Parser.hpp"
+#include "webserv.h"
 
 int main(int argc, char **argv) {
-    // Server serv = Server("127.0.0.1", 8080);
-    // serv.mainLoop();
 	std::vector<Parser> conf;
 	if (argc != 2) {
 		std::cerr << "wrong number of arguments!\n";
@@ -11,6 +8,9 @@ int main(int argc, char **argv) {
 	}
 	if (get_conf(argv[1], conf))
 		return 1;
+
+    Server serv = Server(conf);
+    serv.mainLoop();
 
 /*
 **	these tests should be run with configs/example file!

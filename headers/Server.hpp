@@ -5,18 +5,7 @@
 #ifndef WEBSERV_SERVER_HPP
 #define WEBSERV_SERVER_HPP
 
-#include "color.hpp"
-
-#include <sys/socket.h>
-#include <sys/fcntl.h>
-#include <sys/select.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <sstream>
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <map>
+#include "webserv.h"
 
 #define BUF_SZ 2048
 
@@ -30,7 +19,7 @@ private:
     } fd_info;
 
 public:
-    Server(std::string ip, int port);
+    Server(std::vector<Parser> conf);
     ~Server();
     void mainLoop();
 
@@ -46,8 +35,7 @@ private:
     static std::vector<std::string> split(std::string s, std::string sep);
     void codeResponseInit();
 
-    std::string ip;
-    int port;
+    std::vector<Parser> conf;
     fd_set read_set;
     fd_set write_set;
     std::map<int, fd_info> client_sockets;
