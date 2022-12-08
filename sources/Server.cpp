@@ -139,6 +139,18 @@ bool Server::isAllowMethod(std::string method, std::string allowed_methods) {
     return it != methods.end() ? true : false;
 }
 
+void Server::setMimeType(std::map<int, fd_info>::iterator it, std::string path) {
+    std::string extension = split(path, ".").back();
+    if (extension == "css")
+        it->second.mimeType = "text/css";
+    else if (extension == "png")
+        it->second.mimeType = "image/png";
+    else if (extension == "jpeg" || extension == "jpg")
+        it->second.mimeType = "image/jpeg";
+    else
+        it->second.mimeType = "text/html";
+}
+
 int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
     ssize_t recv_res = recv((*it)->first, *buf, BUF_SZ, 0);
     if (recv_res < 0) {
@@ -167,30 +179,22 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
         return 1;
     }
 
-    std::string methods = curConf->getLocfield(path.substr(0, path.length() - 1), "methods");
-    if (isAllowMethod(arr[0], methods) == false)
-        return renderErrorPage(*it, 405);
-
     std::string rootDir = curConf->getLocfield(path, "root");
+    std::string methods;
     if (rootDir == NOT_FOUND) {
         rootDir = curConf->getServfield("root");
+        methods = curConf->getServfield("methods");
+    } else {
+        methods = curConf->getLocfield(path.substr(0, path.length() - 1), "methods");
     }
+    if (isAllowMethod(arr[0], methods) == false)
+        return renderErrorPage(*it, 405);
 
     if (path.back() == '/')
         path += "index.html";
 
-    std::string extension = split(path, ".").back();
-    if (extension == "css")
-        (*it)->second.mimeType = "text/css";
-    else if (extension == "png")
-        (*it)->second.mimeType = "image/png";
-    else if (extension == "jpeg" || extension == "jpg")
-        (*it)->second.mimeType = "image/jpeg";
-    else
-        (*it)->second.mimeType = "text/html";
-
+    setMimeType(*it, path);
     path = rootDir + path;
-    // printWar("Path: " + path + "\n");
 
     std::ifstream file(path.c_str()); // fix for ubuntu
     std::string s;

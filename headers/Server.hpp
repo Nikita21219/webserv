@@ -37,6 +37,7 @@ private:
     void codeResponseInit();
     Parser *getConfByPort(int port);
     bool isAllowMethod(std::string method, std::string allowed_methods);
+    void setMimeType(std::map<int, fd_info>::iterator it, std::string path);
 
     // Utils
     void printErr(std::string s); // TODO delete this func
