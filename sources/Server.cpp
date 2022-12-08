@@ -8,9 +8,9 @@ void Server::printErr(std::string s) {std::cout << ERROR << s << TERM_RESET;} //
 
 void Server::printWar(std::string s) {std::cout << WARNING << s << TERM_RESET;} // TODO tmp func
 
-int Server::getMaxSock(int listenSock) {
+int Server::getMaxSock() {
     if (client_sockets.empty())
-        return listenSock;
+        return (--listen_socks.end())->first;
     else
         return (--client_sockets.end())->first;
 }
@@ -25,10 +25,10 @@ Server::Server(std::vector<Parser> conf): conf(conf) {
 Server::~Server() {}
 
 void Server::codeResponseInit() {
-    codeResponse.insert(std::pair<int, std::string>(200, "200 OK"));
-    codeResponse.insert(std::pair<int, std::string>(401, "401 Unauthorized"));
-    codeResponse.insert(std::pair<int, std::string>(404, "404 Not Found"));
-    codeResponse.insert(std::pair<int, std::string>(405, "405 Method Not Allowed"));
+    code_response.insert(std::pair<int, std::string>(200, "200 OK"));
+    code_response.insert(std::pair<int, std::string>(401, "401 Unauthorized"));
+    code_response.insert(std::pair<int, std::string>(404, "404 Not Found"));
+    code_response.insert(std::pair<int, std::string>(405, "405 Method Not Allowed"));
 }
 
 int Server::getListenSocket(struct sockaddr_in addr) {
@@ -58,20 +58,23 @@ struct sockaddr_in Server::getAddr(int port) {
     return addr;
 }
 
-int Server::acceptNewConnection(int sock, fd_set *set, struct sockaddr_in *addr) {
+int Server::acceptNewConnection(fd_set *set, struct sockaddr_in *addr) {
     int new_sock = 0;
     socklen_t addrLen = sizeof(addr); //TODO delete line or return from func
-    if (FD_ISSET(sock, set)) {
-        if ((new_sock = accept(sock, (struct sockaddr *) addr, &addrLen)) < 0)
-            return -1;
-        if (new_sock > FD_SETSIZE)
-            return close(new_sock);
-        if (fcntl(new_sock, F_SETFL, O_NONBLOCK) < 0)
-            return -1;
-        fd_info fd_state;
-        fd_state.readyToWriting = false;
-        fd_state.mimeType = "text/html";
-        client_sockets.insert(client_sockets.begin(), std::pair<int, fd_info>(new_sock, fd_state));
+    for (std::map<int, int>::iterator i = listen_socks.begin(); i != listen_socks.end(); ++i) {
+        if (FD_ISSET(i->first, set)) {
+            if ((new_sock = accept(i->first, (struct sockaddr *) addr, &addrLen)) < 0)
+                return -1;
+            if (new_sock > FD_SETSIZE)
+                return close(new_sock);
+            if (fcntl(new_sock, F_SETFL, O_NONBLOCK) < 0)
+                return -1;
+            fd_info fd_state;
+            fd_state.readyToWriting = false;
+            fd_state.mimeType = "text/html";
+            fd_state.belongPort = i->second;
+            client_sockets.insert(client_sockets.begin(), std::pair<int, fd_info>(new_sock, fd_state));
+        }
     }
     return new_sock;
 }
@@ -104,13 +107,13 @@ int Server::pageNotFound(std::map<int, fd_info>::iterator it) {
     return 0;
 }
 
-bool Server::isFile(std::string path) {
-    struct stat fileInfo;
-    if (stat(path.c_str(), &fileInfo) != 0)
-        return false;
-    if ((fileInfo.st_mode & S_IFMT) == S_IFDIR)
-        return false;
-    return true;
+Parser *Server::getConfByPort(int port) {
+    for (std::vector<Parser>::iterator i = conf.begin(); i != conf.end(); ++i) {
+        int tmpPort = atoi((*i).getServfield("listen").c_str());
+        if (tmpPort == port)
+            return new Parser(*i);
+    }
+    return NULL;
 }
 
 int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
@@ -134,20 +137,17 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
     std::vector<std::string> arr = split(fline, " ");
     std::string path = arr[1];
 
-    std::string rootDir = conf[0].getLocfield(path, "root");
+    Parser *curConf = getConfByPort((*it)->second.belongPort);
+    if (curConf == NULL) {
+        printErr("Configuration not found\n");
+        return 1;
+    }
+
+    std::string rootDir = curConf->getLocfield(path, "root");
     if (rootDir == NOT_FOUND)
-        rootDir = conf[0].getServfield("root");
-
-    // if request == / ->                open file ...static/index.html
-    // if request == /test/ ->           open file ...static/index.html
-
-    // if request == /index.html ->      open file ...static/index.html
-    // if request == /test ->            open file ...static/test/index.html
-
-    // if request == /test/index.html -> open file ...static/test/index.html
-    // if request == /test/about.html -> open file ...static/test/about.html
-
-    if (path.back() == '/' /*|| isFile(rootDir + path)*/)
+        rootDir = curConf->getServfield("root");
+    delete curConf;
+    if (path.back() == '/')
         path += "index.html";
 
     std::string extension = split(path, ".").back();
@@ -183,7 +183,7 @@ int Server::sendResponse(std::map<int, fd_info>::iterator it) {
 
     response_body << it->second.response;
 
-    response << "HTTP/1.1 " << codeResponse.find(it->second.status)->second << "\r\n"
+    response << "HTTP/1.1 " << code_response.find(it->second.status)->second << "\r\n"
              << "Version: HTTP/1.1\r\n"
              << "Content-Type: " << it->second.mimeType << "; charset=utf-8\r\n"
              << "Content-Length: " << response_body.str().length()
@@ -203,18 +203,24 @@ void Server::mainLoop() {
     char *buf = new char[BUF_SZ + 1];
     fd_set tmp_read_set, tmp_write_set;
     struct sockaddr_in clientAddr = {};
-    int listen_sock = getListenSocket(getAddr(8080));
+    int sock, port;
 
-    FD_SET(listen_sock, &read_set);
-    while (true) {
-        for (std::map<int, fd_info>::iterator i = client_sockets.begin(); i != client_sockets.end(); i++) {
-            FD_SET(i->first, &read_set);
+    for (std::vector<Parser>::iterator i = conf.begin(); i != conf.end(); i++) {
+        port = atoi(i->getServfield("listen").c_str());
+        if ((sock = getListenSocket(getAddr(port))) != -1) {
+            listen_socks.insert(std::pair<int, int>(sock, port));
+            FD_SET(sock, &read_set);
         }
+    }
+
+    while (true) {
+        for (std::map<int, fd_info>::iterator i = client_sockets.begin(); i != client_sockets.end(); i++)
+            FD_SET(i->first, &read_set);
         tmp_read_set = read_set;
         tmp_write_set = write_set;
-        if (select(getMaxSock(listen_sock) + 1, &tmp_read_set, &tmp_write_set, NULL, NULL) <= 0)
+        if (select(getMaxSock() + 1, &tmp_read_set, &tmp_write_set, NULL, NULL) <= 0)
             continue;
-        if (acceptNewConnection(listen_sock, &tmp_read_set, &clientAddr) < 0)
+        if (acceptNewConnection(&tmp_read_set, &clientAddr) < 0)
             continue;
 
         std::map<int, fd_info>::iterator it = client_sockets.begin();
@@ -230,3 +236,17 @@ void Server::mainLoop() {
         }
     }
 }
+
+
+
+/*
+if request == / ->                open file ...static/index.html
+if request == /test/ ->           open file ...static/index.html
+
+if request == /index.html ->      open file ...static/index.html
+if request == /test ->            open file ...static/test/index.html
+
+if request == /test/index.html -> open file ...static/test/index.html
+if request == /test/about.html -> open file ...static/test/about.html
+*/
+

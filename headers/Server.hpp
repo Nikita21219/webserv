@@ -16,6 +16,7 @@ private:
         std::string response;
         int status;
         std::string mimeType;
+        int belongPort;
     } fd_info;
 
 public:
@@ -26,22 +27,23 @@ public:
 private:
     int getListenSocket(struct sockaddr_in addr);
     struct sockaddr_in getAddr(int port);
-    int acceptNewConnection(int sock, fd_set *set, struct sockaddr_in *addr);
+    int acceptNewConnection(fd_set *set, struct sockaddr_in *addr);
     int recieve(std::map<int, fd_info>::iterator *it, char **buf);
     int sendResponse(std::map<int, fd_info>::iterator it);
-    int getMaxSock(int listenSock);
+    int getMaxSock();
     void printErr(std::string s); // TODO delete this func
     void printWar(std::string s); // TODO delete this func
     static std::vector<std::string> split(std::string s, std::string sep);
     void codeResponseInit();
     int pageNotFound(std::map<int, fd_info>::iterator it);
-    bool isFile(std::string path);
+    Parser *getConfByPort(int port);
 
-        std::vector<Parser> conf;
+    std::vector<Parser> conf;
     fd_set read_set;
     fd_set write_set;
     std::map<int, fd_info> client_sockets;
-    std::map<int, std::string> codeResponse;
+    std::map<int, std::string> code_response;
+    std::map<int, int> listen_socks;
 };
 
 #endif //WEBSERV_SERVER_HPP
