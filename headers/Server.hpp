@@ -34,8 +34,10 @@ private:
     void printWar(std::string s); // TODO delete this func
     static std::vector<std::string> split(std::string s, std::string sep);
     void codeResponseInit();
+    int pageNotFound(std::map<int, fd_info>::iterator it);
+    bool isFile(std::string path);
 
-    std::vector<Parser> conf;
+        std::vector<Parser> conf;
     fd_set read_set;
     fd_set write_set;
     std::map<int, fd_info> client_sockets;

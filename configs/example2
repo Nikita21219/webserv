@@ -1,25 +1,11 @@
 server {
-	listen 8080
-	server_name localhost
-	root static
-	autoindex off
-	methods GET
-	max_body_size 10
-	location / {
-		methods GET
-		index index.html
-	}
-	location /test2 {
-		methods GET, POST, DELETE
-	}
-	location .py {
-		methods POST
-		bin_path /bin/python3
-	}
-	location /hub {
-		redirection github.com
-		location /.txt {
-			methods POST
-		}
-	}
+    listen          8888
+    server_name     localhost
+
+    root    /Users/a1/Downloads/IT/school21/webserv/static/
+
+    location /test {
+        root    /Users/a1/Downloads/IT/school21/webserv/static/
+        index   index.html
+    }
 }

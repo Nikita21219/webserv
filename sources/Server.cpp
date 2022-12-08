@@ -88,6 +88,31 @@ std::vector<std::string> Server::split(std::string s, std::string sep) {
     return arr;
 }
 
+int Server::pageNotFound(std::map<int, fd_info>::iterator it) {
+    std::ifstream f("static/404.html");
+    if (!f.is_open()) {
+        printErr("cant open 404.html");
+        return 1;
+    }
+    std::string s;
+    while (std::getline(f, s))
+        it->second.response += s + "\n";
+    f.close();
+    it->second.status = 404;
+    it->second.readyToWriting = true;
+    FD_SET(it->first, &write_set);
+    return 0;
+}
+
+bool Server::isFile(std::string path) {
+    struct stat fileInfo;
+    if (stat(path.c_str(), &fileInfo) != 0)
+        return false;
+    if ((fileInfo.st_mode & S_IFMT) == S_IFDIR)
+        return false;
+    return true;
+}
+
 int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
     ssize_t recv_res = recv((*it)->first, *buf, BUF_SZ, 0);
     if (recv_res < 0) {
@@ -105,19 +130,25 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
     }
     *(*buf + recv_res) = 0;
 
-    // std::cout << "\bBUF:\n" << *buf << "\n\n";
-
     std::string fline = split(std::string(*buf), "\n").front();
     std::vector<std::string> arr = split(fline, " ");
     std::string path = arr[1];
-    if (path == "/")
-        path = "static/index.html"; //TODO redirect in config file
-    else if (path == "/favicon.ico")
-        path = "static/img/favicon.ico"; //TODO redirect in config file
-    else
-        path = "static" + path;
 
-    // printWar("PATH: " + path + "\n");
+    std::string rootDir = conf[0].getLocfield(path, "root");
+    if (rootDir == NOT_FOUND)
+        rootDir = conf[0].getServfield("root");
+
+    // if request == / ->                open file ...static/index.html
+    // if request == /test/ ->           open file ...static/index.html
+
+    // if request == /index.html ->      open file ...static/index.html
+    // if request == /test ->            open file ...static/test/index.html
+
+    // if request == /test/index.html -> open file ...static/test/index.html
+    // if request == /test/about.html -> open file ...static/test/about.html
+
+    if (path.back() == '/' /*|| isFile(rootDir + path)*/)
+        path += "index.html";
 
     std::string extension = split(path, ".").back();
     if (extension == "css")
@@ -129,7 +160,9 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
     else
         (*it)->second.mimeType = "text/html";
 
-    std::ifstream file(path.c_str());// fix for ubuntu
+    path = rootDir + path;
+
+    std::ifstream file(path.c_str()); // fix for ubuntu
     std::string s;
     if (file.is_open()) {
         while (std::getline(file, s))
@@ -139,17 +172,7 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
         (*it)->second.readyToWriting = true;
         FD_SET((*it)->first, &write_set);
     } else {
-        std::ifstream f("static/404.html");
-        if (!f.is_open()) {
-            printErr("cant open 404.html");
-            return 1;
-        }
-        while (std::getline(f, s))
-            (*it)->second.response += s + "\n";
-        f.close();
-        (*it)->second.status = 404;
-        (*it)->second.readyToWriting = true;
-        FD_SET((*it)->first, &write_set);
+        return pageNotFound(*it);
     }
     return 0;
 }

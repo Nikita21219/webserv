@@ -17,6 +17,7 @@
 #include <fstream>
 #include <vector>
 #include <map>
+#include <sys/stat.h>
 
 #include "Parser.hpp"
 #include "Server.hpp"
