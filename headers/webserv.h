@@ -12,6 +12,7 @@
 #include <sys/select.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <sstream>
 #include <iostream>
 #include <fstream>

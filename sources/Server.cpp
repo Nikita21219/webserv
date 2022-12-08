@@ -91,17 +91,20 @@ std::vector<std::string> Server::split(std::string s, std::string sep) {
     return arr;
 }
 
-int Server::pageNotFound(std::map<int, fd_info>::iterator it) {
-    std::ifstream f("static/404.html");
+int Server::renderErrorPage(std::map<int, fd_info>::iterator it, int status) {
+    std::stringstream out;
+    out << status;
+    std::string statusStr = out.str();
+    std::ifstream f("static/" + statusStr + ".html");
     if (!f.is_open()) {
-        printErr("cant open 404.html");
+        printErr("cant open " + statusStr + ".html");
         return 1;
     }
     std::string s;
     while (std::getline(f, s))
         it->second.response += s + "\n";
     f.close();
-    it->second.status = 404;
+    it->second.status = status;
     it->second.readyToWriting = true;
     FD_SET(it->first, &write_set);
     return 0;
@@ -114,6 +117,26 @@ Parser *Server::getConfByPort(int port) {
             return new Parser(*i);
     }
     return NULL;
+}
+
+void Server::deleteDirFromPath(std::string *path) {
+    std::vector<std::string> v = split(*path, "/");
+    std::string result = "";
+    int counter = 0;
+    for (std::vector<std::string>::iterator i = v.begin(); i != v.end(); ++i) {
+        if (counter++ == 0)
+            continue;
+        result += "/" + *i;
+    }
+    printWar("result path: " + result + "\n");
+}
+
+bool Server::isAllowMethod(std::string method, std::string allowed_methods) {
+    if (allowed_methods == NOT_FOUND)
+        return true;
+    std::vector<std::string> methods = split(allowed_methods, " ");
+    std::vector<std::string>::iterator it = std::find(methods.begin(), methods.end(), method);
+    return it != methods.end() ? true : false;
 }
 
 int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
@@ -131,6 +154,7 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
         printWar("Client go away\n");
         return 1;
     }
+
     *(*buf + recv_res) = 0;
 
     std::string fline = split(std::string(*buf), "\n").front();
@@ -143,10 +167,15 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
         return 1;
     }
 
+    std::string methods = curConf->getLocfield(path.substr(0, path.length() - 1), "methods");
+    if (isAllowMethod(arr[0], methods) == false)
+        return renderErrorPage(*it, 405);
+
     std::string rootDir = curConf->getLocfield(path, "root");
-    if (rootDir == NOT_FOUND)
+    if (rootDir == NOT_FOUND) {
         rootDir = curConf->getServfield("root");
-    delete curConf;
+    }
+
     if (path.back() == '/')
         path += "index.html";
 
@@ -161,6 +190,7 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
         (*it)->second.mimeType = "text/html";
 
     path = rootDir + path;
+    // printWar("Path: " + path + "\n");
 
     std::ifstream file(path.c_str()); // fix for ubuntu
     std::string s;
@@ -172,7 +202,7 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
         (*it)->second.readyToWriting = true;
         FD_SET((*it)->first, &write_set);
     } else {
-        return pageNotFound(*it);
+        return renderErrorPage(*it, 404);
     }
     return 0;
 }

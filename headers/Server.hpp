@@ -25,19 +25,30 @@ public:
     void mainLoop();
 
 private:
+    // Sockets
     int getListenSocket(struct sockaddr_in addr);
     struct sockaddr_in getAddr(int port);
     int acceptNewConnection(fd_set *set, struct sockaddr_in *addr);
+    int getMaxSock();
+
+    // Handle request and send response
     int recieve(std::map<int, fd_info>::iterator *it, char **buf);
     int sendResponse(std::map<int, fd_info>::iterator it);
-    int getMaxSock();
+    void codeResponseInit();
+    Parser *getConfByPort(int port);
+    bool isAllowMethod(std::string method, std::string allowed_methods);
+
+    // Utils
     void printErr(std::string s); // TODO delete this func
     void printWar(std::string s); // TODO delete this func
     static std::vector<std::string> split(std::string s, std::string sep);
-    void codeResponseInit();
-    int pageNotFound(std::map<int, fd_info>::iterator it);
-    Parser *getConfByPort(int port);
+    void deleteDirFromPath(std::string *path);
 
+    // Error pages
+    int renderErrorPage(std::map<int, fd_info>::iterator it, int status);
+
+
+    // Fields
     std::vector<Parser> conf;
     fd_set read_set;
     fd_set write_set;
