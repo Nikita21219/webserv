@@ -14,8 +14,9 @@ private:
     typedef struct fd_info_t {
         bool readyToWriting;
         std::string response;
-        int status;
         std::string mimeType;
+        std::string browserInfo;
+        int status;
         int belongPort;
     } fd_info;
 
@@ -38,6 +39,8 @@ private:
     Parser *getConfByPort(int port);
     bool isAllowMethod(std::string method, std::string allowed_methods);
     void setMimeType(std::map<int, fd_info>::iterator it, std::string path);
+    int getRequest(std::string path, std::string rootDir, std::map<int, fd_info>::iterator it);
+    void initBrowserInfo(std::map<int, fd_info>::iterator it, std::string location);
 
     // Utils
     void printErr(std::string s); // TODO delete this func
