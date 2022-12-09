@@ -162,13 +162,20 @@ int Server::getRequest(std::string path, std::string rootDir, std::map<int, fd_i
 
     setMimeType(it, path);
     path = rootDir + path;
+    initBrowserInfo(it, "");
 
     std::ifstream file(path.c_str()); // fix for ubuntu
-    std::string s;
+    std::string s, response;
     if (file.is_open()) {
         while (std::getline(file, s))
-            it->second.response += s + "\n";
+            response += s + "\n";
         file.close();
+        std::stringstream out;
+        out << response.length();
+        std::string contentLength = out.str();
+        it->second.response += "Content-Length: " + contentLength + "\r\n";
+        it->second.response += "\r\n\r\n";
+        it->second.response += response;
         it->second.status = 200;
         it->second.readyToWriting = true;
         FD_SET(it->first, &write_set);
@@ -190,12 +197,16 @@ void Server::initBrowserInfo(std::map<int, fd_info>::iterator it, std::string lo
     response += "Content-Type: " + it->second.mimeType + "; charset=utf-8\r\n";
     response += "Server: webserv42\r\n";
     if (!location.empty())
-        response += "Location: " + location;
-    response += "Content-Length: " + contentLength;
-    response += "\r\n\r\n";
+        response += "Location: " + location + "\r\n";
     response += response_body;
 
     it->second.response = response;
+}
+
+int Server::redirect(std::map<int, fd_info>::iterator it, std::string path) {
+    it->second.status = 301;
+    initBrowserInfo(it, path);
+    return 0;
 }
 
 int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
@@ -226,25 +237,26 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
         return 1;
     }
 
-    std::string rootDir = curConf->getLocfield(path, "root");
+    std::string rootDir = curConf->getLocfield(path.substr(0, path.length() - 1), "root");
     std::string methods;
     if (rootDir == NOT_FOUND) {
         rootDir = curConf->getServfield("root");
         methods = curConf->getServfield("methods");
     } else {
         methods = curConf->getLocfield(path.substr(0, path.length() - 1), "methods");
+        if (methods == NOT_FOUND)
+            methods = "GET POST DELETE"; //TODO prepare after parser
+        if (path.back() != '/') {
+            path += "/";
+            redirect(*it, path);
+        }
     }
 
     if (isAllowMethod(arr[0], methods) == false)
         return renderErrorPage(*it, 405);
 
-    // if (path.back() != '/')
-    //     return redirect();
-
-    initBrowserInfo(*it, NULL);
-
     if (arr[0] == "GET")
-        return getRequest(path, rootDir, *it);
+        return getRequest(path.substr(1), rootDir, *it);
     else
         return renderErrorPage(*it, 405);
 }
@@ -255,6 +267,8 @@ int Server::sendResponse(std::map<int, fd_info>::iterator it) {
 
     response << it->second.response;
 
+    // std::cout << "response:\n\n" << it->second.response;
+    // exit(0);
     if (send(it->first, response.str().c_str(), response.str().length(), 0) < 0)
         return -1;
     FD_CLR(it->first, &write_set);
