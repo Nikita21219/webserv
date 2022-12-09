@@ -13,6 +13,7 @@ int main(int argc, char **argv) {
     serv.mainLoop();
 
     // std::cout << conf[0].getLocfield("/test", "methods") << "\n";
+    // std::cout << conf[0].getServfield("methods") << "\n";
 
     return 0;
 }

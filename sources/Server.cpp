@@ -8,6 +8,12 @@ void Server::printErr(std::string s) {std::cout << ERROR << s << TERM_RESET;} //
 
 void Server::printWar(std::string s) {std::cout << WARNING << s << TERM_RESET;} // TODO tmp func
 
+std::string Server::itos(int num) {
+    std::stringstream out;
+    out << num;
+    return out.str();
+}
+
 int Server::getMaxSock() {
     if (client_sockets.empty())
         return (--listen_socks.end())->first;
@@ -26,7 +32,6 @@ Server::~Server() {}
 
 void Server::codeResponseInit() {
     code_response.insert(std::pair<int, std::string>(200, "200 OK"));
-    code_response.insert(std::pair<int, std::string>(301, "301 Moved Permanently"));
     code_response.insert(std::pair<int, std::string>(401, "401 Unauthorized"));
     code_response.insert(std::pair<int, std::string>(404, "404 Not Found"));
     code_response.insert(std::pair<int, std::string>(405, "405 Method Not Allowed"));
@@ -93,9 +98,7 @@ std::vector<std::string> Server::split(std::string s, std::string sep) {
 }
 
 int Server::renderErrorPage(std::map<int, fd_info>::iterator it, int status) {
-    std::stringstream out;
-    out << status;
-    std::string statusStr = out.str();
+    std::string statusStr = itos(status);
     std::ifstream f("static/" + statusStr + ".html");
     if (!f.is_open()) {
         printErr("cant open " + statusStr + ".html");
@@ -120,8 +123,6 @@ Parser *Server::getConfByPort(int port) {
     return NULL;
 }
 
-/*
-
 void Server::deleteDirFromPath(std::string *path) {
     std::vector<std::string> v = split(*path, "/");
     std::string result = "";
@@ -133,8 +134,6 @@ void Server::deleteDirFromPath(std::string *path) {
     }
     printWar("result path: " + result + "\n");
 }
-
-*/
 
 bool Server::isAllowMethod(std::string method, std::string allowed_methods) {
     if (allowed_methods == NOT_FOUND)
@@ -154,59 +153,6 @@ void Server::setMimeType(std::map<int, fd_info>::iterator it, std::string path) 
         it->second.mimeType = "image/jpeg";
     else
         it->second.mimeType = "text/html";
-}
-
-int Server::getRequest(std::string path, std::string rootDir, std::map<int, fd_info>::iterator it) {
-    if (path.back() == '/')
-        path += "index.html";
-
-    setMimeType(it, path);
-    path = rootDir + path;
-    initBrowserInfo(it, "");
-
-    std::ifstream file(path.c_str()); // fix for ubuntu
-    std::string s, response;
-    if (file.is_open()) {
-        while (std::getline(file, s))
-            response += s + "\n";
-        file.close();
-        std::stringstream out;
-        out << response.length();
-        std::string contentLength = out.str();
-        it->second.response += "Content-Length: " + contentLength + "\r\n";
-        it->second.response += "\r\n\r\n";
-        it->second.response += response;
-        it->second.status = 200;
-        it->second.readyToWriting = true;
-        FD_SET(it->first, &write_set);
-    } else {
-        return renderErrorPage(it, 404);
-    }
-    return 0;
-}
-
-void Server::initBrowserInfo(std::map<int, fd_info>::iterator it, std::string location) {
-    std::string response_body = it->second.response;
-    std::stringstream out;
-    out << response_body.length();
-    std::string contentLength = out.str();
-
-    std::string response = "";
-    response += "HTTP/1.1 " + code_response.find(it->second.status)->second + "\r\n";
-    response += "Version: HTTP/1.1\r\n";
-    response += "Content-Type: " + it->second.mimeType + "; charset=utf-8\r\n";
-    response += "Server: webserv42\r\n";
-    if (!location.empty())
-        response += "Location: " + location + "\r\n";
-    response += response_body;
-
-    it->second.response = response;
-}
-
-int Server::redirect(std::map<int, fd_info>::iterator it, std::string path) {
-    it->second.status = 301;
-    initBrowserInfo(it, path);
-    return 0;
 }
 
 int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
@@ -237,38 +183,51 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
         return 1;
     }
 
-    std::string rootDir = curConf->getLocfield(path.substr(0, path.length() - 1), "root");
+    std::string rootDir = curConf->getLocfield(path, "root");
     std::string methods;
     if (rootDir == NOT_FOUND) {
         rootDir = curConf->getServfield("root");
         methods = curConf->getServfield("methods");
     } else {
         methods = curConf->getLocfield(path.substr(0, path.length() - 1), "methods");
-        if (methods == NOT_FOUND)
-            methods = "GET POST DELETE"; //TODO prepare after parser
-        if (path.back() != '/') {
-            path += "/";
-            redirect(*it, path);
-        }
     }
-
     if (isAllowMethod(arr[0], methods) == false)
         return renderErrorPage(*it, 405);
 
-    if (arr[0] == "GET")
-        return getRequest(path.substr(1), rootDir, *it);
-    else
-        return renderErrorPage(*it, 405);
+    if (path.back() == '/')
+        path += "index.html";
+
+    setMimeType(*it, path);
+    path = rootDir + path;
+
+    std::ifstream file(path.c_str()); // fix for ubuntu
+    std::string s;
+    if (file.is_open()) {
+        while (std::getline(file, s))
+            (*it)->second.response += s + "\n";
+        file.close();
+        (*it)->second.status = 200;
+        (*it)->second.readyToWriting = true;
+        FD_SET((*it)->first, &write_set);
+    } else {
+        return renderErrorPage(*it, 404);
+    }
+    return 0;
 }
 
 int Server::sendResponse(std::map<int, fd_info>::iterator it) {
     std::stringstream response_body;
     std::stringstream response;
 
-    response << it->second.response;
+    response_body << it->second.response;
 
-    // std::cout << "response:\n\n" << it->second.response;
-    // exit(0);
+    response << "HTTP/1.1 " << code_response.find(it->second.status)->second << "\r\n"
+             << "Version: HTTP/1.1\r\n"
+             << "Content-Type: " << it->second.mimeType << "; charset=utf-8\r\n"
+             << "Content-Length: " << response_body.str().length()
+             << "\r\n\r\n"
+             << response_body.str();
+
     if (send(it->first, response.str().c_str(), response.str().length(), 0) < 0)
         return -1;
     FD_CLR(it->first, &write_set);
@@ -315,3 +274,17 @@ void Server::mainLoop() {
         }
     }
 }
+
+
+
+/*
+if request == / ->                open file ...static/index.html
+if request == /test/ ->           open file ...static/index.html
+
+if request == /index.html ->      open file ...static/index.html
+if request == /test ->            open file ...static/test/index.html
+
+if request == /test/index.html -> open file ...static/test/index.html
+if request == /test/about.html -> open file ...static/test/about.html
+*/
+
