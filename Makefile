@@ -1,7 +1,7 @@
 NAME = webserv
 CC = c++
 
-CPPFLAGS = -g3 -Wall -Wextra -Werror -Wshadow -Wno-shadow -fsanitize=address -std=c++98
+CPPFLAGS = -g3 -Wall -Wextra -Werror -Wshadow -Wno-shadow  -std=c++98
 
 OBJDIR = ./objs
 VPATH = sources/
