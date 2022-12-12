@@ -138,17 +138,23 @@ int Server::removeClient(std::map<int, fd_info>::iterator *it) {
     return 1;
 }
 
-// std::string Server::getLocURL(std::string path, Parser *curConf) {
-//     printWar("path: " + path);
-//     std::string res;
-//     if (curConf->getLocfield(path, "root") != NOT_FOUND)
-//         return path;
-//     // if (curConf->getLocfield(path, "root") != NOT_FOUND)
-//     //     return path;
-//     // if (curConf->getLocfield(path, "root") != NOT_FOUND)
-//     //     return path;
-//     return "NULL";
-// }
+std::string Server::getLocURL(std::string path, Parser *curConf) {
+    std::string res;
+    if (curConf->getLocfield(path, "root") != NOT_FOUND)
+        return path;
+    std::vector<std::string> v = split(path, "/");
+    if (curConf->getLocfield("/" + v[1], "root") != NOT_FOUND)
+        return "/" + v[1];
+    return curConf->getServfield("root");
+}
+
+void Server::preparePathToOpen(std::string &path, std::string locURL, std::string rootDir) {
+    if (path == locURL + "/" || path == "/")
+        path += "index.html";
+    // printWar("path: " + path);
+    path = rootDir + rtrim(path, "/");
+    replaceOn(path, "//", "/");
+}
 
 int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
     ssize_t recv_res = recv((*it)->first, *buf, BUF_SZ, 0);
@@ -173,14 +179,14 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
         return 1;
     }
 
-    // getLocURL(path, curConf);
-    std::string rootDir = curConf->getLocfield(path, "root");
+    std::string locURL = getLocURL(path, curConf);
+    std::string rootDir = curConf->getLocfield(locURL, "root");
     std::string methods;
     if (rootDir == NOT_FOUND) {
         rootDir = curConf->getServfield("root");
         methods = curConf->getServfield("methods");
     } else {
-        if (path.back() != '/')
+        if (path == locURL)
             return redirect(path + '/', *it);
         methods = curConf->getLocfield(path.substr(0, path.length() - 1), "methods");
     }
@@ -190,11 +196,8 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
     if (isAllowMethod(arr[0], methods) == false)
         return renderErrorPage(*it, 405);
 
-    if (path.back() == '/')
-        path += "index.html";
-
+    preparePathToOpen(path, locURL, rootDir);
     setMimeType(*it, path);
-    path = rootDir + path;
 
     std::ifstream file(path.c_str()); // fix for ubuntu
     std::string s;
@@ -274,17 +277,3 @@ void Server::mainLoop() {
         }
     }
 }
-
-
-
-/*
-if request == / ->                open file ...static/index.html
-if request == /test/ ->           open file ...static/index.html
-
-if request == /index.html ->      open file ...static/index.html
-if request == /test ->            open file ...static/test/index.html
-
-if request == /test/index.html -> open file ...static/test/index.html
-if request == /test/about.html -> open file ...static/test/about.html
-*/
-

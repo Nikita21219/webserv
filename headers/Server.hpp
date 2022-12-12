@@ -42,7 +42,8 @@ private:
     void setMimeType(std::map<int, fd_info>::iterator it, std::string path);
     void formResponse(std::map<int, fd_info>::iterator it);
     int redirect(std::string path, std::map<int, fd_info>::iterator it);
-    // std::string getLocURL(std::string path, Parser *curConf);
+    std::string getLocURL(std::string path, Parser *curConf);
+    void preparePathToOpen(std::string &path, std::string locURL, std::string rootDir);
 
     // Handle errors
     int renderErrorPage(std::map<int, fd_info>::iterator it, int status);

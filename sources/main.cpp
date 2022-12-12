@@ -9,10 +9,8 @@ int main(int argc, char **argv) {
 	if (get_conf(argv[1], conf))
 		return 1;
 
-
-
-    // Server serv = Server(conf);
-    // serv.mainLoop();
+    Server serv = Server(conf);
+    serv.mainLoop();
 
     // std::cout << conf[0].getLocfield("/test", "methods") << "\n";
     // std::cout << conf[0].getServfield("methods") << "\n";

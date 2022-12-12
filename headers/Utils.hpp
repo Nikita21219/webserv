@@ -30,9 +30,7 @@ static inline std::string rtrim(std::string s, std::string subStr) {
 }
 
 static inline std::string trim(std::string s, std::string subStr) {
-    ltrim(s, subStr);
-    rtrim(s, subStr);
-    return s;
+    return rtrim(ltrim(s, subStr), subStr);
 }
 
 static inline std::vector<std::string> split(std::string s, std::string sep) {
@@ -45,6 +43,20 @@ static inline std::vector<std::string> split(std::string s, std::string sep) {
     }
     arr.push_back(s.substr(0, pos));
     return arr;
+}
+
+static inline void replaceOn(std::string &s, std::string subStr, std::string repl) {
+    size_t pos;
+    if ((pos = s.find(subStr)) != std::string::npos)
+        s.replace(pos, subStr.length(), repl);
+}
+
+static inline bool startswith(std::string s, std::string start) {
+    return (s.find(start) == 0) ? true : false;
+}
+
+static inline bool endswith(std::string s, std::string end) {
+    return (s.find(end) == s.length() - end.length()) ? true : false;
 }
 
 #endif
