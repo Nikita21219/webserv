@@ -186,11 +186,12 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
         rootDir = curConf->getServfield("root");
         methods = curConf->getServfield("methods");
     } else {
-        if (path == locURL)
+        if (path == locURL) {
+            delete curConf;
             return redirect(path + '/', *it);
+        }
         methods = curConf->getLocfield(path.substr(0, path.length() - 1), "methods");
     }
-
     delete curConf;
 
     if (isAllowMethod(arr[0], methods) == false)
