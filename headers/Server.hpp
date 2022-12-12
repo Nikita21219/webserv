@@ -12,10 +12,12 @@
 class Server {
 private:
     typedef struct fd_info_t {
-        bool readyToWriting;
         std::string response;
-        int status;
+        std::string headers;
         std::string mimeType;
+        std::string redirectTo;
+        bool readyToWriting;
+        int status;
         int belongPort;
     } fd_info;
 
@@ -33,21 +35,18 @@ private:
 
     // Handle request and send response
     int recieve(std::map<int, fd_info>::iterator *it, char **buf);
-    int sendResponse(std::map<int, fd_info>::iterator it);
+    int sendResponse(std::map<int, fd_info>::iterator *it);
     void codeResponseInit();
     Parser *getConfByPort(int port);
     bool isAllowMethod(std::string method, std::string allowed_methods);
     void setMimeType(std::map<int, fd_info>::iterator it, std::string path);
+    void formResponse(std::map<int, fd_info>::iterator it);
+    int redirect(std::string path, std::map<int, fd_info>::iterator it);
+    // std::string getLocURL(std::string path, Parser *curConf);
 
-    // Utils
-    void printErr(std::string s); // TODO delete this func
-    void printWar(std::string s); // TODO delete this func
-    static std::vector<std::string> split(std::string s, std::string sep);
-    void deleteDirFromPath(std::string *path);
-    std::string itos(int num);
-
-    // Error pages
+    // Handle errors
     int renderErrorPage(std::map<int, fd_info>::iterator it, int status);
+    int removeClient(std::map<int, fd_info>::iterator *it);
 
 
     // Fields

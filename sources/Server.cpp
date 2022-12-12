@@ -4,16 +4,6 @@
 
 #include "../headers/webserv.h"
 
-void Server::printErr(std::string s) {std::cout << ERROR << s << TERM_RESET;} // TODO tmp func
-
-void Server::printWar(std::string s) {std::cout << WARNING << s << TERM_RESET;} // TODO tmp func
-
-std::string Server::itos(int num) {
-    std::stringstream out;
-    out << num;
-    return out.str();
-}
-
 int Server::getMaxSock() {
     if (client_sockets.empty())
         return (--listen_socks.end())->first;
@@ -32,6 +22,7 @@ Server::~Server() {}
 
 void Server::codeResponseInit() {
     code_response.insert(std::pair<int, std::string>(200, "200 OK"));
+    code_response.insert(std::pair<int, std::string>(301, "301 Moved Permanently"));
     code_response.insert(std::pair<int, std::string>(401, "401 Unauthorized"));
     code_response.insert(std::pair<int, std::string>(404, "404 Not Found"));
     code_response.insert(std::pair<int, std::string>(405, "405 Method Not Allowed"));
@@ -85,18 +76,6 @@ int Server::acceptNewConnection(fd_set *set, struct sockaddr_in *addr) {
     return new_sock;
 }
 
-std::vector<std::string> Server::split(std::string s, std::string sep) {
-    std::vector<std::string> arr;
-    std::string token;
-    size_t pos = 0;
-    while ((pos = s.find(sep)) != std::string::npos) {
-        arr.push_back(s.substr(0, pos));
-        s.erase(0, pos + sep.length());
-    }
-    arr.push_back(s.substr(0, pos));
-    return arr;
-}
-
 int Server::renderErrorPage(std::map<int, fd_info>::iterator it, int status) {
     std::string statusStr = itos(status);
     std::ifstream f("static/" + statusStr + ".html");
@@ -123,18 +102,6 @@ Parser *Server::getConfByPort(int port) {
     return NULL;
 }
 
-void Server::deleteDirFromPath(std::string *path) {
-    std::vector<std::string> v = split(*path, "/");
-    std::string result = "";
-    int counter = 0;
-    for (std::vector<std::string>::iterator i = v.begin(); i != v.end(); ++i) {
-        if (counter++ == 0)
-            continue;
-        result += "/" + *i;
-    }
-    printWar("result path: " + result + "\n");
-}
-
 bool Server::isAllowMethod(std::string method, std::string allowed_methods) {
     if (allowed_methods == NOT_FOUND)
         return true;
@@ -155,20 +122,43 @@ void Server::setMimeType(std::map<int, fd_info>::iterator it, std::string path) 
         it->second.mimeType = "text/html";
 }
 
+int Server::redirect(std::string path, std::map<int, fd_info>::iterator it) {
+    it->second.status = 301;
+    it->second.redirectTo = path;
+    FD_SET(it->first, &write_set);
+    it->second.readyToWriting = true;
+    return 0;
+}
+
+int Server::removeClient(std::map<int, fd_info>::iterator *it) {
+    FD_CLR((*it)->first, &read_set);
+    FD_CLR((*it)->first, &write_set);
+    close((*it)->first);
+    client_sockets.erase((*it)++->first);
+    return 1;
+}
+
+// std::string Server::getLocURL(std::string path, Parser *curConf) {
+//     printWar("path: " + path);
+//     std::string res;
+//     if (curConf->getLocfield(path, "root") != NOT_FOUND)
+//         return path;
+//     // if (curConf->getLocfield(path, "root") != NOT_FOUND)
+//     //     return path;
+//     // if (curConf->getLocfield(path, "root") != NOT_FOUND)
+//     //     return path;
+//     return "NULL";
+// }
+
 int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
     ssize_t recv_res = recv((*it)->first, *buf, BUF_SZ, 0);
     if (recv_res < 0) {
-        printErr("strerror from recieve: " + std::string(strerror(errno)) + "\n");
-        printWar("Client go away\n");
-        return 1;
+        printErr("strerror from recieve: " + std::string(strerror(errno)) + "\n"); //TODO delete errno
+        return removeClient(it);
     }
     if (recv_res == 0) {
-        FD_CLR((*it)->first, &read_set);
-        FD_CLR((*it)->first, &write_set);
-        close((*it)->first);
-        client_sockets.erase((*it)++->first);
         printWar("Client go away\n");
-        return 1;
+        return removeClient(it);
     }
 
     *(*buf + recv_res) = 0;
@@ -183,14 +173,20 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
         return 1;
     }
 
+    // getLocURL(path, curConf);
     std::string rootDir = curConf->getLocfield(path, "root");
     std::string methods;
     if (rootDir == NOT_FOUND) {
         rootDir = curConf->getServfield("root");
         methods = curConf->getServfield("methods");
     } else {
+        if (path.back() != '/')
+            return redirect(path + '/', *it);
         methods = curConf->getLocfield(path.substr(0, path.length() - 1), "methods");
     }
+
+    delete curConf;
+
     if (isAllowMethod(arr[0], methods) == false)
         return renderErrorPage(*it, 405);
 
@@ -215,25 +211,29 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
     return 0;
 }
 
-int Server::sendResponse(std::map<int, fd_info>::iterator it) {
+void Server::formResponse(std::map<int, fd_info>::iterator it) {
+    it->second.headers = "HTTP/1.1 " + code_response.find(it->second.status)->second + "\r\n";
+    it->second.headers += "Version: HTTP/1.1\r\n";
+    it->second.headers += "Content-Type: " + it->second.mimeType + "; charset=utf-8\r\n";
+    if (it->second.status == 301)
+        it->second.headers += "Location: " + it->second.redirectTo + "\r\n";
+    it->second.headers += "Content-Length: " + itos(it->second.response.length());
+    it->second.headers += "\r\n\r\n";
+}
+
+int Server::sendResponse(std::map<int, fd_info>::iterator *it) {
     std::stringstream response_body;
     std::stringstream response;
 
-    response_body << it->second.response;
+    formResponse(*it);
+    response << (*it)->second.headers << (*it)->second.response;
 
-    response << "HTTP/1.1 " << code_response.find(it->second.status)->second << "\r\n"
-             << "Version: HTTP/1.1\r\n"
-             << "Content-Type: " << it->second.mimeType << "; charset=utf-8\r\n"
-             << "Content-Length: " << response_body.str().length()
-             << "\r\n\r\n"
-             << response_body.str();
-
-    if (send(it->first, response.str().c_str(), response.str().length(), 0) < 0)
-        return -1;
-    FD_CLR(it->first, &write_set);
-    it->second.readyToWriting = false;
-    it->second.response.clear();
-    it->second.mimeType = "text/html";
+    if (send((*it)->first, response.str().c_str(), response.str().length(), 0) <= 0)
+        return removeClient(it);
+    FD_CLR((*it)->first, &write_set);
+    (*it)->second.readyToWriting = false;
+    (*it)->second.response.clear();
+    (*it)->second.mimeType = "text/html";
     return 0;
 }
 
@@ -268,7 +268,7 @@ void Server::mainLoop() {
                 if (recieve(&it, &buf))
                     continue;
             if (it->second.readyToWriting && FD_ISSET(it->first, &tmp_write_set))
-                if (sendResponse(it))
+                if (sendResponse(&it))
                     continue;
             it++;
         }
