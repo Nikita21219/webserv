@@ -10,17 +10,6 @@
 #define BUF_SZ 2048
 
 class Server {
-private:
-    typedef struct fd_info_t {
-        std::string response;
-        std::string headers;
-        std::string mimeType;
-        std::string redirectTo;
-        bool readyToWriting;
-        int status;
-        int belongPort;
-    } fd_info;
-
 public:
     Server(std::vector<Parser> conf);
     ~Server();
@@ -38,19 +27,18 @@ private:
     int sendResponse(std::map<int, fd_info>::iterator *it);
     void codeResponseInit();
     Parser *getConfByPort(int port);
-    bool isAllowMethod(std::string method, std::string allowed_methods);
-    void setMimeType(std::map<int, fd_info>::iterator it, std::string path);
+    // bool isAllowMethod(std::string method, std::string allowed_methods);
+    // void setMimeType(std::map<int, fd_info>::iterator it, std::string path);
     void formResponse(std::map<int, fd_info>::iterator it);
-    int redirect(std::string path, std::map<int, fd_info>::iterator it);
-    std::string getLocURL(std::string path, Parser *curConf);
-    void preparePathToOpen(std::string &path, std::string locURL, std::string rootDir);
-    int getRequest(std::string path, std::map<int, fd_info>::iterator it);
-    int postRequest(std::string path, std::map<int, fd_info>::iterator it, char *buf);
+    // int redirect(std::string path, std::map<int, fd_info>::iterator it);
+    // std::string getLocURL(std::string path, Parser *curConf);
+    // void preparePathToOpen(std::string &path, std::string locURL, std::string rootDir);
+    // int getRequest(std::string path, std::map<int, fd_info>::iterator it);
+    // int postRequest(std::string path, std::map<int, fd_info>::iterator it, char *buf);
 
     // Handle errors
     int renderErrorPage(std::map<int, fd_info>::iterator it, int status);
     int removeClient(std::map<int, fd_info>::iterator *it);
-
 
     // Fields
     std::vector<Parser> conf;

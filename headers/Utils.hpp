@@ -7,6 +7,16 @@
 
 #include "webserv.h"
 
+typedef struct fd_info_t {
+    std::string response;
+    std::string headers;
+    std::string mimeType;
+    std::string redirectTo;
+    bool readyToWriting;
+    int status;
+    int belongPort;
+} fd_info;
+
 static inline void printErr(std::string s) {std::cout << ERROR << s << "\n" << TERM_RESET;} // TODO tmp func
 
 static inline void printWar(std::string s) {std::cout << WARNING << s << "\n" << TERM_RESET;} // TODO tmp func

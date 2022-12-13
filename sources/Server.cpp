@@ -76,21 +76,12 @@ int Server::acceptNewConnection(fd_set *set, struct sockaddr_in *addr) {
     return new_sock;
 }
 
-int Server::renderErrorPage(std::map<int, fd_info>::iterator it, int status) {
-    std::string statusStr = itos(status);
-    std::ifstream f("static/" + statusStr + ".html");
-    if (!f.is_open()) {
-        printErr("cant open " + statusStr + ".html");
-        return 1;
-    }
-    std::string s;
-    while (std::getline(f, s))
-        it->second.response += s + "\n";
-    f.close();
-    it->second.status = status;
-    it->second.readyToWriting = true;
-    FD_SET(it->first, &write_set);
-    return 0;
+int Server::removeClient(std::map<int, fd_info>::iterator *it) {
+    FD_CLR((*it)->first, &read_set);
+    FD_CLR((*it)->first, &write_set);
+    close((*it)->first);
+    client_sockets.erase((*it)++->first);
+    return 1;
 }
 
 Parser *Server::getConfByPort(int port) {
@@ -102,74 +93,6 @@ Parser *Server::getConfByPort(int port) {
     return NULL;
 }
 
-bool Server::isAllowMethod(std::string method, std::string allowed_methods) {
-    if (allowed_methods == NOT_FOUND)
-        return true;
-    std::vector<std::string> methods = split(allowed_methods, " ");
-    std::vector<std::string>::iterator it = std::find(methods.begin(), methods.end(), method);
-    return it != methods.end() ? true : false;
-}
-
-void Server::setMimeType(std::map<int, fd_info>::iterator it, std::string path) {
-    std::string extension = split(path, ".").back();
-    if (extension == "css")
-        it->second.mimeType = "text/css";
-    else if (extension == "png")
-        it->second.mimeType = "image/png";
-    else if (extension == "jpeg" || extension == "jpg")
-        it->second.mimeType = "image/jpeg";
-    else
-        it->second.mimeType = "text/html";
-}
-
-int Server::redirect(std::string path, std::map<int, fd_info>::iterator it) {
-    it->second.status = 301;
-    it->second.redirectTo = path;
-    FD_SET(it->first, &write_set);
-    it->second.readyToWriting = true;
-    return 0;
-}
-
-int Server::removeClient(std::map<int, fd_info>::iterator *it) {
-    FD_CLR((*it)->first, &read_set);
-    FD_CLR((*it)->first, &write_set);
-    close((*it)->first);
-    client_sockets.erase((*it)++->first);
-    return 1;
-}
-
-std::string Server::getLocURL(std::string path, Parser *curConf) {
-    std::string res;
-    if (curConf->getLocfield(path, "root") != NOT_FOUND)
-        return path;
-    std::vector<std::string> v = split(path, "/");
-    if (curConf->getLocfield("/" + v[1], "root") != NOT_FOUND)
-        return "/" + v[1];
-    return curConf->getServfield("root");
-}
-
-void Server::preparePathToOpen(std::string &path, std::string locURL, std::string rootDir) {
-    if (path == locURL + "/" || path == "/")
-        path += "index.html";
-    path = rootDir + rtrim(path, "/");
-    replaceOn(path, "//", "/");
-}
-
-int Server::getRequest(std::string path, std::map<int, fd_info>::iterator it) {
-    std::ifstream file(path.c_str()); // fix for ubuntu
-    std::string s;
-    if (file.is_open()) {
-        while (std::getline(file, s))
-            it->second.response += s + "\n";
-        file.close();
-        it->second.status = 200;
-        it->second.readyToWriting = true;
-        FD_SET(it->first, &write_set);
-        return 0;
-    }
-    return renderErrorPage(it, 404);
-}
-
 int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
     ssize_t recv_res = recv((*it)->first, *buf, BUF_SZ, 0);
     if (recv_res < 0) {
@@ -179,42 +102,15 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
     if (recv_res == 0) {
         printWar("Client go away");
         return removeClient(it);
-    } //TODO join if res <= 0 then removeClient
+    } //TODO join: if res <= 0 then removeClient
     *(*buf + recv_res) = 0;
-
-    std::string fline = split(std::string(*buf), "\n").front();
-    std::vector<std::string> arr = split(fline, " ");
-    std::string path = arr[1];
-    std::string requestMethod = arr[0];
-
     Parser *curConf = getConfByPort((*it)->second.belongPort);
     if (curConf == NULL)
         return 1;
-
-    std::string locURL = getLocURL(path, curConf);
-    std::string rootDir = curConf->getLocfield(locURL, "root");
-    std::string methods;
-    if (rootDir == NOT_FOUND) {
-        rootDir = curConf->getServfield("root");
-        methods = curConf->getServfield("methods");
-    } else {
-        if (path == locURL) {
-            delete curConf;
-            return redirect(path + '/', *it);
-        }
-        methods = curConf->getLocfield(path.substr(0, path.length() - 1), "methods");
-    }
-    delete curConf;
-
-    if (isAllowMethod(arr[0], methods) == false)
-        return renderErrorPage(*it, 405);
-
-    preparePathToOpen(path, locURL, rootDir);
-    setMimeType(*it, path);
-
-    if (requestMethod == "GET")
-        return getRequest(path, *it);
-    return 0;
+    Request request = Request(*it, *buf, curConf, &write_set);
+    if (request.parse())
+        return 1;
+    return request.mainLogic();
 }
 
 void Server::formResponse(std::map<int, fd_info>::iterator it) {
@@ -223,7 +119,8 @@ void Server::formResponse(std::map<int, fd_info>::iterator it) {
     it->second.headers += "Content-Type: " + it->second.mimeType + "; charset=utf-8\r\n";
     if (it->second.status == 301)
         it->second.headers += "Location: " + it->second.redirectTo + "\r\n";
-    it->second.headers += "Content-Length: " + itos(it->second.response.length());
+    it->second.headers += "Content-Length: " + itos(it->second.response.length()) + "\r\n";
+    it->second.headers += "Connection: Keep-Alive";
     it->second.headers += "\r\n\r\n";
 }
 

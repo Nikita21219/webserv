@@ -22,6 +22,7 @@
 
 #include "Utils.hpp"
 #include "Parser.hpp"
+#include "Request.hpp"
 #include "Server.hpp"
 
 // #include <string.h>// hello ubuntu
