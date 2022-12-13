@@ -44,6 +44,8 @@ private:
     int redirect(std::string path, std::map<int, fd_info>::iterator it);
     std::string getLocURL(std::string path, Parser *curConf);
     void preparePathToOpen(std::string &path, std::string locURL, std::string rootDir);
+    int getRequest(std::string path, std::map<int, fd_info>::iterator it);
+    int postRequest(std::string path, std::map<int, fd_info>::iterator it, char *buf);
 
     // Handle errors
     int renderErrorPage(std::map<int, fd_info>::iterator it, int status);

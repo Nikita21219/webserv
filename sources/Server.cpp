@@ -151,33 +151,45 @@ std::string Server::getLocURL(std::string path, Parser *curConf) {
 void Server::preparePathToOpen(std::string &path, std::string locURL, std::string rootDir) {
     if (path == locURL + "/" || path == "/")
         path += "index.html";
-    // printWar("path: " + path);
     path = rootDir + rtrim(path, "/");
     replaceOn(path, "//", "/");
+}
+
+int Server::getRequest(std::string path, std::map<int, fd_info>::iterator it) {
+    std::ifstream file(path.c_str()); // fix for ubuntu
+    std::string s;
+    if (file.is_open()) {
+        while (std::getline(file, s))
+            it->second.response += s + "\n";
+        file.close();
+        it->second.status = 200;
+        it->second.readyToWriting = true;
+        FD_SET(it->first, &write_set);
+        return 0;
+    }
+    return renderErrorPage(it, 404);
 }
 
 int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
     ssize_t recv_res = recv((*it)->first, *buf, BUF_SZ, 0);
     if (recv_res < 0) {
-        printErr("strerror from recieve: " + std::string(strerror(errno)) + "\n"); //TODO delete errno
+        printErr("strerror from recieve: " + std::string(strerror(errno))); //TODO delete errno
         return removeClient(it);
     }
     if (recv_res == 0) {
-        printWar("Client go away\n");
+        printWar("Client go away");
         return removeClient(it);
     } //TODO join if res <= 0 then removeClient
-
     *(*buf + recv_res) = 0;
 
     std::string fline = split(std::string(*buf), "\n").front();
     std::vector<std::string> arr = split(fline, " ");
     std::string path = arr[1];
+    std::string requestMethod = arr[0];
 
     Parser *curConf = getConfByPort((*it)->second.belongPort);
-    if (curConf == NULL) {
-        printErr("Configuration not found\n");
+    if (curConf == NULL)
         return 1;
-    }
 
     std::string locURL = getLocURL(path, curConf);
     std::string rootDir = curConf->getLocfield(locURL, "root");
@@ -200,18 +212,8 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
     preparePathToOpen(path, locURL, rootDir);
     setMimeType(*it, path);
 
-    std::ifstream file(path.c_str()); // fix for ubuntu
-    std::string s;
-    if (file.is_open()) {
-        while (std::getline(file, s))
-            (*it)->second.response += s + "\n";
-        file.close();
-        (*it)->second.status = 200;
-        (*it)->second.readyToWriting = true;
-        FD_SET((*it)->first, &write_set);
-    } else {
-        return renderErrorPage(*it, 404);
-    }
+    if (requestMethod == "GET")
+        return getRequest(path, *it);
     return 0;
 }
 
@@ -237,7 +239,6 @@ int Server::sendResponse(std::map<int, fd_info>::iterator *it) {
     FD_CLR((*it)->first, &write_set);
     (*it)->second.readyToWriting = false;
     (*it)->second.response.clear();
-    (*it)->second.mimeType = "text/html";
     return 0;
 }
 
