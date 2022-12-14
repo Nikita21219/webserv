@@ -1,8 +1,10 @@
 #ifndef DIRECTIVEPARSER_HPP
 # define DIRECTIVEPARSER_HPP
 
-# include "Parser.hpp"
+# include <string>
+# include <map>
 
+class Parser;
 
 class DirectiveParser
 {
@@ -15,17 +17,19 @@ class DirectiveParser
 		~DirectiveParser();
 
 		DirectiveParser &			operator=( DirectiveParser const & rhs );
-
+		std::map<std::string, std::string> const&	getContext() const;
 		static std::string const	_key_words[13];
 
-	private:
+		class WrongBracketsException: public std::exception {
+			public:
+				virtual const char *what() const throw();
+		};
 
-		std::map<std::string, std::string>	_contexts;
+	private:
 
 		void								stringProcessing(std::string &str);
 		void								saveContext(std::string &str);
 		std::string							saveLocations(std::string &str);
-		std::string							skipBlockDirective(std::string &str);
 		void								skipEmptyChars(std::string &tmp, std::string &str);
 
 		class ProblemWithDirectiveException: public std::exception {
@@ -36,6 +40,11 @@ class DirectiveParser
 			public:
 				virtual const char *what() const throw();
 		};
+
+	protected:
+
+		std::map<std::string, std::string>			_contexts;
+		std::string									skipBlockDirective(std::string &str);
 
 };
 

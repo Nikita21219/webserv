@@ -134,7 +134,7 @@ std::string DirectiveParser::skipBlockDirective(std::string &str) {
 			++par;
 			flag = 0;
 		} else if (str[end] == '}' && flag)
-			throw Parser::WrongBracketsException();
+			throw DirectiveParser::WrongBracketsException();
 		else if (str[end] == '}')
 			--par;
 		++end;
@@ -154,10 +154,18 @@ const char* DirectiveParser::NestedLocationException::what() const throw() {
 	return "Error: nested location!";
 }
 
+const char* DirectiveParser::WrongBracketsException::what() const throw() {
+	return "Brackets are incorrect!";
+}
+
 
 /*
 ** --------------------------------- ACCESSOR ---------------------------------
 */
+
+std::map<std::string, std::string> const& DirectiveParser::getContext() const {
+	return _contexts;
+}
 
 
 /* ************************************************************************** */
