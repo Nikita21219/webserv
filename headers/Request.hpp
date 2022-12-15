@@ -22,6 +22,8 @@ private:
     int getRequest();
     int renderErrorPage(int status);
     bool isAllowMethod(std::string allowed_methods);
+    bool isBadRequest();
+    int badRequest();
 
     std::map<int, fd_info>::iterator it;
     char *buf;

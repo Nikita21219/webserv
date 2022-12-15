@@ -11,9 +11,30 @@ Request::~Request() {
     delete conf;
 }
 
+bool Request::isBadRequest() {
+    if (strlen(buf) < 7) {
+        printErr("Bad request!");
+        return true;
+    }
+    return false;
+} //TODO need to fix
+
+int Request::badRequest() {
+    it->second.status = 400;
+    FD_SET(it->first, write_set);
+    it->second.response = "";
+    *buf = 0;
+    it->second.readyToWriting = true;
+    return 0;
+}
+
 int Request::parse() {
-    std::string fline = split(std::string(buf), "\n").front();
+    if (isBadRequest())
+        return badRequest();
+    std::string fline = split(buf, "\n").front();
     std::vector<std::string> arr = split(fline, " ");
+    if (arr.empty())
+        return 1;
     path = arr[1];
     method = arr[0];
     std::string requestMethod = arr[0];
@@ -101,6 +122,8 @@ int Request::getRequest() {
 }
 
 int Request::mainLogic() {
+    if (it->second.status == 400)
+        return 0;
     std::string locURL = getLocURL();
     std::string rootDir = conf->getLocfield(locURL, "root");
     std::string methods;
