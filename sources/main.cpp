@@ -2,12 +2,18 @@
 
 int main(int argc, char **argv) {
 	std::vector<Parser> conf;
-	if (argc != 2) {
+	const char *file_conf;
+	if (argc > 2) {
 		std::cerr << "wrong number of arguments!\n";
 		return 1;
-	}
-	if (get_conf(argv[1], conf))
+	} else if (argc == 2)
+		file_conf = argv[1];
+	else
+		file_conf = "/etc/webserv.conf";
+	if (get_conf(file_conf, conf))
 		return 1;
+
+
 
     Server serv = Server(conf);
     serv.mainLoop();
@@ -17,9 +23,6 @@ int main(int argc, char **argv) {
 
     return 0;
 }
-
-
-
 
 /*
 	std::cout << " -----some tests----- \n";

@@ -1,7 +1,7 @@
 
 #include "Parser.hpp"
 
-bool get_conf(char *file, std::vector<Parser> &conf) {
+bool get_conf(const char *file, std::vector<Parser> &conf) {
 	std::ifstream in_file;
 	std::string serv;
 	in_file.open(file);
