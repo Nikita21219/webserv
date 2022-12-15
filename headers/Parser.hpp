@@ -39,6 +39,10 @@ class Parser: public DirectiveParser
 			public:
 				virtual const char *what() const throw();
 		};
+		class EmptyServerException: public std::exception {
+			public:
+				virtual const char *what() const throw();
+		};
 
 };
 

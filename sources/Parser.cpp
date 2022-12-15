@@ -21,6 +21,8 @@ Parser::Parser(std::string &data): DirectiveParser(data) {
 		else
 			break;
 	}
+	if (_contexts.size() == 0)
+		throw EmptyServerException();
 }
 
 Parser::Parser( const Parser & src ): DirectiveParser(src)
@@ -69,6 +71,7 @@ std::string Parser::getLocationkey(std::string &loc) {
 	std::string res = loc.substr(0, loc.find('\n'));
 	if (res[res.find("location") + 8] != ' ')
 		throw Parser::LocationFieldException();
+	res.erase(0, res.find("location") + 1);
 	res.erase(0, res.find(' ') + 1);
 	int i = 0;
 	while (res[i] == ' ')
@@ -97,6 +100,10 @@ const char* Parser::LocationFieldException::what() const throw() {
 
 const char* Parser::LocationRepeatException::what() const throw() {
 	return "There are two identical locations in your config file!";
+}
+
+const char* Parser::EmptyServerException::what() const throw() {
+	return "Error: Empty server!";
 }
 
 
