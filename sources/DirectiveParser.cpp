@@ -62,7 +62,7 @@ void DirectiveParser::stringProcessing(std::string &str) {
 	while (1) {
 		saveloc += saveLocations(str);
 		std::string tmp = str.substr(0, str.find('\n'));
-		while (!tmp.size()) {
+		while (!tmp.size() && !str.empty()) {
 			str.erase(0, str.find('\n') + 1);
 			saveloc += saveLocations(str);
 			tmp = str.substr(0, str.find('\n'));
