@@ -13,13 +13,8 @@ int main(int argc, char **argv) {
 	if (get_conf(file_conf, conf))
 		return 1;
 
-
-
     Server serv = Server(conf);
     serv.mainLoop();
-
-    // std::cout << conf[0].getLocfield("/test", "methods") << "\n";
-    // std::cout << conf[0].getServfield("methods") << "\n";
 
     return 0;
 }

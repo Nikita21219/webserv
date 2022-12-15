@@ -100,7 +100,7 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
         return removeClient(it);
     }
     if (recv_res == 0) {
-        // printWar("Client go away");
+        printWar("Client go away");
         return removeClient(it);
     } //TODO join: if res <= 0 then removeClient
     *(*buf + recv_res) = 0;
