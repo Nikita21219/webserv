@@ -104,8 +104,6 @@ int Request::mainLogic() {
     std::string locURL = getLocURL();
     std::string rootDir = conf->getLocfield(locURL, "root");
     std::string methods;
-    printWar("locURL: " + locURL);
-    printWar("path: " + path);
     if (rootDir == NOT_FOUND) {
         rootDir = conf->getServfield("root");
         methods = conf->getServfield("methods");
