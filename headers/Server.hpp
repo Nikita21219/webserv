@@ -28,6 +28,7 @@ private:
     void codeResponseInit();
     Parser *getConfByPort(int port);
     void formResponse(std::map<int, fd_info>::iterator it);
+
     // Handle errors
     int removeClient(std::map<int, fd_info>::iterator *it);
 

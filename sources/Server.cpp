@@ -100,7 +100,7 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
         return removeClient(it);
     }
     if (recv_res == 0) {
-        printWar("Client go away");
+        // printWar("Client go away");
         return removeClient(it);
     } //TODO join: if res <= 0 then removeClient
     *(*buf + recv_res) = 0;
@@ -119,8 +119,7 @@ void Server::formResponse(std::map<int, fd_info>::iterator it) {
     it->second.headers += "Content-Type: " + it->second.mimeType + "; charset=utf-8\r\n";
     if (it->second.status == 301)
         it->second.headers += "Location: " + it->second.redirectTo + "\r\n";
-    it->second.headers += "Content-Length: " + itos(it->second.response.length()) + "\r\n";
-    it->second.headers += "Connection: Keep-Alive";
+    it->second.headers += "Content-Length: " + itos(it->second.response.length());
     it->second.headers += "\r\n\r\n";
 }
 
