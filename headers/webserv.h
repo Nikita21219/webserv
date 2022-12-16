@@ -21,6 +21,7 @@
 #include <set>
 
 #include "Utils.hpp"
+#include "TempFile.hpp"
 #include "Parser.hpp"
 #include "Request.hpp"
 #include "Server.hpp"
