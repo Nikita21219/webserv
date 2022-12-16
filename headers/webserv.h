@@ -22,6 +22,7 @@
 
 #include "Utils.hpp"
 #include "TempFile.hpp"
+#include "Cgi.hpp"
 #include "Parser.hpp"
 #include "Request.hpp"
 #include "Server.hpp"

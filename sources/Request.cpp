@@ -39,6 +39,13 @@ int Request::parse() {
     method = arr[0];
     std::string requestMethod = arr[0];
 
+    if (startswith(path, "/cgi")) {
+        Cgi cgi = Cgi(path, it, "/usr/bin/python3");
+        // Cgi cgi = Cgi(path, it, conf->getLocfield("/cgi", "bin_path"));
+        if (cgi.launch(NULL))
+            printErr("Launch error");
+    }
+
     if (conf == NULL)
         return 1;
     return 0;
@@ -113,6 +120,11 @@ int Request::getRequest() {
         while (std::getline(file, s))
             it->second.response += s + "\n";
         file.close();
+        it->second.status = 200;
+        it->second.readyToWriting = true;
+        FD_SET(it->first, write_set);
+        return 0;
+    } else if (path.find("cgi") != std::string::npos) { //TODO fix this condition
         it->second.status = 200;
         it->second.readyToWriting = true;
         FD_SET(it->first, write_set);
