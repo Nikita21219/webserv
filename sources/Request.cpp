@@ -40,8 +40,7 @@ int Request::parse() {
     std::string requestMethod = arr[0];
 
     if (startswith(path, "/cgi")) {
-        Cgi cgi = Cgi(path, it, "/usr/bin/python3");
-        // Cgi cgi = Cgi(path, it, conf->getLocfield("/cgi", "bin_path"));
+        Cgi cgi = Cgi(path, it, conf->getLocfield("/cgi", "bin_path"));
         if (cgi.launch(NULL))
             printErr("Launch error");
     }

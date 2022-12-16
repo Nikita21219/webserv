@@ -17,9 +17,6 @@ int Cgi::execute(int out, char **args, char **env) {
         return 1;
     }
     else if (pid == 0) {
-        // printWar("bin_path: " + bin_path);
-        // printWar("args[0]: " + std::string(args[0]));
-        // printWar("args[1]: " + std::string(args[1]));
         dup2(out, STDOUT_FILENO);
         if (execve(bin_path.c_str(), args, env) < 0)
             exit(1);
@@ -36,7 +33,7 @@ int Cgi::launch(char **env) {
         printErr("File not opened"); //TODO tmp line
         return 1;
     }
-    std::string path = "cgi/main.py";
+    // std::string path = "cgi/bash_program";
     char **args = (char **)malloc(sizeof(char *) * 3);
     args[0] = (char *)path.c_str();
     args[1] = (char *)path.c_str();
