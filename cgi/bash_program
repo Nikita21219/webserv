@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo 'Content-Type: text/plain'
-echo ''
-
+echo '<h1>'
 date
+echo '</h1>'
+
