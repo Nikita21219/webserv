@@ -11,8 +11,6 @@ Cgi::~Cgi() {}
 
 int Cgi::execute(int out, char **args, char **env) {
     (void) out; //TODO tmp line
-
-
     int pid = fork();
     int status;
     if (pid < 0) {
@@ -21,10 +19,7 @@ int Cgi::execute(int out, char **args, char **env) {
     }
     else if (pid == 0) {
         dup2(out, STDOUT_FILENO);
-        CgiEnv environ = CgiEnv(env);
-        // environ.addVariable("QUERY_STRING", getQueryString());
-        SmartPtrPtr<char> smartPtrPtr = environ.toCArray();
-        if (execve(bin_path.c_str(), args, smartPtrPtr.getPtr()) < 0)
+        if (execve(bin_path.c_str(), args, env) < 0)
             exit(1);
         exit(0);
     }
@@ -40,12 +35,18 @@ int Cgi::launch(char **env) {
         return 1;
     }
 
+    CgiEnv environ = CgiEnv(env);
+    std::vector<std::string> pathSplit = split(path, "?");
+    path = pathSplit[0];
+    if (pathSplit.size() == 2)
+        environ.addVariable("QUERY_STRING", pathSplit[1]);
+
     char **args = (char **)malloc(sizeof(char *) * 3);
     args[0] = (char *)path.c_str();
     args[1] = (char *)path.c_str();
     args[2] = NULL;
 
-    int status = execute(tmpFile.getFd(), args, env);
+    int status = execute(tmpFile.getFd(), args, environ.toCArray());
     delete [] args;
     if (status == 0)
         it->second.response = tmpFile.read();

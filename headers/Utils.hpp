@@ -80,21 +80,4 @@ private:
     T *ptr;
 };
 
-template <typename U>
-class SmartPtrPtr {
-public:
-    SmartPtrPtr(U **ptr): ptr(ptr) {}
-    U &operator *() {return *ptr;}
-    U **getPtr() {return ptr;}
-
-    ~SmartPtrPtr() {
-        while (*ptr)
-            delete *ptr;
-        delete ptr;
-    }
-
-private:
-    U **ptr;
-};
-
 #endif
