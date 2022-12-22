@@ -10,15 +10,21 @@ path(ltrim(path, "/")), it(it), bin_path(bin_path) {}
 Cgi::~Cgi() {}
 
 int Cgi::execute(int out, char **args, char **env) {
+    (void) out; //TODO tmp line
+
+
     int pid = fork();
     int status;
     if (pid < 0) {
-        printErr("Fork error"); // TODO delete line
+        printErr("Fork error"); //TODO delete line
         return 1;
     }
     else if (pid == 0) {
         dup2(out, STDOUT_FILENO);
-        if (execve(bin_path.c_str(), args, env) < 0)
+        CgiEnv environ = CgiEnv(env);
+        // environ.addVariable("QUERY_STRING", getQueryString());
+        SmartPtrPtr<char> smartPtrPtr = environ.toCArray();
+        if (execve(bin_path.c_str(), args, smartPtrPtr.getPtr()) < 0)
             exit(1);
         exit(0);
     }
@@ -33,11 +39,11 @@ int Cgi::launch(char **env) {
         printErr("File not opened"); //TODO tmp line
         return 1;
     }
-    // std::string path = "cgi/bash_program";
+
     char **args = (char **)malloc(sizeof(char *) * 3);
     args[0] = (char *)path.c_str();
     args[1] = (char *)path.c_str();
-    args[2] = NULL; //TODO fix this stuff
+    args[2] = NULL;
 
     int status = execute(tmpFile.getFd(), args, env);
     delete [] args;

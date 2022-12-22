@@ -13,7 +13,7 @@ class Server {
 public:
     Server(std::vector<Parser> conf);
     ~Server();
-    void mainLoop();
+    void mainLoop(char **env);
 
 private:
     // Sockets
@@ -23,7 +23,7 @@ private:
     int getMaxSock();
 
     // Handle request and send response
-    int recieve(std::map<int, fd_info>::iterator *it, char **buf);
+    int recieve(std::map<int, fd_info>::iterator *it, char **buf, char **env);
     int sendResponse(std::map<int, fd_info>::iterator *it);
     void codeResponseInit();
     Parser *getConfByPort(int port);

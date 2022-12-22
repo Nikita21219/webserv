@@ -69,4 +69,32 @@ static inline bool endswith(std::string s, std::string end) {
     return (s.find(end) == s.length() - end.length()) ? true : false;
 }
 
+template <typename T>
+class SmartPtr {
+public:
+    SmartPtr(T *ptr): ptr(ptr) {}
+    T &operator *() {return *ptr;}
+    ~SmartPtr() {delete ptr;}
+
+private:
+    T *ptr;
+};
+
+template <typename U>
+class SmartPtrPtr {
+public:
+    SmartPtrPtr(U **ptr): ptr(ptr) {}
+    U &operator *() {return *ptr;}
+    U **getPtr() {return ptr;}
+
+    ~SmartPtrPtr() {
+        while (*ptr)
+            delete *ptr;
+        delete ptr;
+    }
+
+private:
+    U **ptr;
+};
+
 #endif

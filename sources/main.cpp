@@ -49,11 +49,27 @@ int main(int argc, char **argv, char **env) {
 	if (get_conf(file_conf, conf))
 		return 1;
 
-    // if (launch(env))
-    //     printErr("Cgi launcher returned error");
-
     Server serv = Server(conf);
-    serv.mainLoop();
+    serv.mainLoop(env);
+
+
+
+
+
+
+    (void) argv;
+    (void) argc;
+    std::map<std::string, std::string> m;
+    m["hello"] = "world";
+    m["test"] = "TEST";
+    for (std::map<std::string, std::string>::iterator i = m.begin(); i != m.end(); ++i) {
+        char *s = (char *)i->first.c_str();
+        printWar(s);
+    }
+
+
+
+
 
     return 0;
 }

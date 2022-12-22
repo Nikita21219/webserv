@@ -3,4 +3,7 @@
 echo '<h1>'
 date
 echo '</h1>'
-
+echo '<br>'
+echo '<pre>'
+env
+echo '</pre>'

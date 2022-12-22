@@ -28,7 +28,7 @@ int Request::badRequest() {
     return 0;
 }
 
-int Request::parse() {
+int Request::parse(char **env) {
     if (isBadRequest())
         return badRequest();
     std::string fline = split(buf, "\n").front();
@@ -41,7 +41,7 @@ int Request::parse() {
 
     if (startswith(path, "/cgi")) {
         Cgi cgi = Cgi(path, it, conf->getLocfield("/cgi", "bin_path"));
-        if (cgi.launch(NULL))
+        if (cgi.launch(env))
             printErr("Launch error");
     }
 

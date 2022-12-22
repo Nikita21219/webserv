@@ -11,7 +11,7 @@ class Request {
 public:
     Request(std::map<int, fd_info>::iterator it, char *buf, Parser *conf, fd_set *write_set);
     ~Request();
-    int parse();
+    int parse(char **env);
     int mainLogic();
 
 private:

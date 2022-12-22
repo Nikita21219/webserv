@@ -93,14 +93,14 @@ Parser *Server::getConfByPort(int port) {
     return NULL;
 }
 
-int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
+int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf, char **env) {
     ssize_t recv_res = recv((*it)->first, *buf, BUF_SZ, 0);
     if (recv_res < 0) {
         printErr("strerror from recieve: " + std::string(strerror(errno))); //TODO delete errno
         return removeClient(it);
     }
     if (recv_res == 0) {
-        // printWar("Client go away");
+        printWar("Client go away");
         return removeClient(it);
     } //TODO join: if res <= 0 then removeClient
     *(*buf + recv_res) = 0;
@@ -109,7 +109,7 @@ int Server::recieve(std::map<int, fd_info>::iterator *it, char **buf) {
     if (curConf == NULL)
         return 1;
     Request request = Request(*it, *buf, curConf, &write_set);
-    if (request.parse())
+    if (request.parse(env))
         return 1;
     return request.mainLogic();
 }
@@ -139,7 +139,7 @@ int Server::sendResponse(std::map<int, fd_info>::iterator *it) {
     return 0;
 }
 
-void Server::mainLoop() {
+void Server::mainLoop(char **env) {
     char *buf = new char[BUF_SZ + 1];
     fd_set tmp_read_set, tmp_write_set;
     struct sockaddr_in clientAddr = {};
@@ -167,7 +167,7 @@ void Server::mainLoop() {
         std::map<int, fd_info>::iterator end = client_sockets.end();
         while (it != end) {
             if (FD_ISSET(it->first, &tmp_read_set))
-                if (recieve(&it, &buf))
+                if (recieve(&it, &buf, env))
                     continue;
             if (it->second.readyToWriting && FD_ISSET(it->first, &tmp_write_set))
                 if (sendResponse(&it))
