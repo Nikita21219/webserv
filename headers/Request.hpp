@@ -16,7 +16,7 @@ public:
 
 private:
     std::string getLocURL();
-    int redirect();
+    int redirect(std::string redirectTo);
     void preparePathToOpen(std::string locURL, std::string rootDir);
     void setMimeType();
     int getRequest();

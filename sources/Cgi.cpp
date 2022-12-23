@@ -28,6 +28,15 @@ int Cgi::execute(int out, char **args, char **env) {
     return status;
 }
 
+bool Cgi::noSuchFile() {
+    bool result = false;
+    std::ifstream ifs(path);
+    if (!ifs.is_open())
+        result = true;
+    ifs.close();
+    return result;
+}
+
 int Cgi::launch(char **env) {
     TempFile tmpFile = TempFile("cgi_out" + itos(it->first));
     if (!tmpFile.isOpen()) {
@@ -48,9 +57,13 @@ int Cgi::launch(char **env) {
 
     int status = execute(tmpFile.getFd(), args, environ.toCArray());
     delete [] args;
-    if (status == 0)
+    if (status == 0) {
         it->second.response = tmpFile.read();
-    else
-        it->second.status = 500;
+        it->second.status = 200;
+    } else if (noSuchFile()) {
+        it->second.status = 404;
+    } else {
+        it->second.status = 502;
+    }
     return status;
 }

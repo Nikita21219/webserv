@@ -26,6 +26,7 @@ void Server::codeResponseInit() {
     code_response.insert(std::pair<int, std::string>(401, "401 Unauthorized"));
     code_response.insert(std::pair<int, std::string>(404, "404 Not Found"));
     code_response.insert(std::pair<int, std::string>(405, "405 Method Not Allowed"));
+    code_response.insert(std::pair<int, std::string>(405, "502 Bad Gateway"));
 }
 
 int Server::getListenSocket(struct sockaddr_in addr) {

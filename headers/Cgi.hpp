@@ -17,6 +17,7 @@ public:
 
 private:
     int execute(int out, char **args, char **env);
+    bool noSuchFile();
 
     std::string path;
     std::map<int, fd_info>::iterator it;

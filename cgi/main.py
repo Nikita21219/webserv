@@ -1,6 +1,7 @@
 from datetime import datetime
 import os
 
+
 def execute():
     date = datetime.now().strftime('%d.%m.%Y - %H:%M:%S')
     print(f'<h4>Date: {date}</h4>')

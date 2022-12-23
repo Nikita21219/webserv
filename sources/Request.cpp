@@ -33,16 +33,17 @@ int Request::parse(char **env) {
         return badRequest();
     std::string fline = split(buf, "\n").front();
     std::vector<std::string> arr = split(fline, " ");
-    if (arr.empty())
+    if (arr.size() < 2)
         return 1;
     path = arr[1];
     method = arr[0];
     std::string requestMethod = arr[0];
 
-    if (startswith(path, "/cgi")) {
+    if (startswith(path, "/cgi") /*|| startswith(path, "/cgish")*/) {
         Cgi cgi = Cgi(path, it, conf->getLocfield("/cgi", "bin_path"));
         if (cgi.launch(env))
-            printErr("Launch error");
+            if (it->second.status != 200)
+                return renderErrorPage(it->second.status);
     }
 
     if (conf == NULL)
@@ -60,9 +61,9 @@ std::string Request::getLocURL() {
     return conf->getServfield("root");
 }
 
-int Request::redirect() {
+int Request::redirect(std::string redirectTo) {
     it->second.status = 301;
-    it->second.redirectTo = path + "/";
+    it->second.redirectTo = redirectTo;
     FD_SET(it->first, write_set);
     it->second.readyToWriting = true;
     return 0;
@@ -143,9 +144,13 @@ int Request::mainLogic() {
         methods = conf->getServfield("methods");
     } else {
         if (path == locURL)
-            return redirect();
+            return redirect(path + "/");
         methods = conf->getLocfield(path.substr(0, path.length() - 1), "methods");
     }
+
+    std::string redirectTo = conf->getLocfield(path, "redirection");
+    if (redirectTo != NOT_FOUND)
+        return redirect(redirectTo);
 
     if (isAllowMethod(methods) == false)
         return renderErrorPage(405);
