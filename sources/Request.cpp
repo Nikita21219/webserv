@@ -39,11 +39,12 @@ int Request::parse(char **env) {
     method = arr[0];
     std::string requestMethod = arr[0];
 
-    if (startswith(path, "/cgi") /*|| startswith(path, "/cgish")*/) {
-        Cgi cgi = Cgi(path, it, conf->getLocfield("/cgi", "bin_path"));
-        if (cgi.launch(env))
-            if (it->second.status != 200)
-                return renderErrorPage(it->second.status);
+    if (startswith(path, "/cgi")) {
+        Cgi cgi = Cgi(path, it, conf);
+        if (!cgi.wrongBinPath())
+            if (cgi.launch(env))
+                if (it->second.status != 200)
+                    return renderErrorPage(it->second.status);
     }
 
     if (conf == NULL)
@@ -124,9 +125,7 @@ int Request::getRequest() {
         it->second.readyToWriting = true;
         FD_SET(it->first, write_set);
         return 0;
-    } else if (path.find("cgi") != std::string::npos) { //TODO fix this condition
-        it->second.status = 200;
-        it->second.readyToWriting = true;
+    } else if (it->second.readyToWriting) { //TODO fix this condition
         FD_SET(it->first, write_set);
         return 0;
     }

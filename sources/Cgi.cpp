@@ -4,13 +4,37 @@
 
 #include "../headers/webserv.h"
 
-Cgi::Cgi(std::string path, std::map<int, fd_info>::iterator it, std::string bin_path):
-path(ltrim(path, "/")), it(it), bin_path(bin_path) {}
+Cgi::Cgi(std::string path, std::map<int, fd_info>::iterator it, Parser *conf):
+path(ltrim(path, "/")), it(it) {
+
+    size_t pos;
+    std::string location;
+    if ((pos = path.find("/cgipy")) != std::string::npos)
+        location = path.substr(0, strlen("/cgipy"));
+    else if ((pos = path.find("/cgish")) != std::string::npos)
+        location = path.substr(0, strlen("/cgish"));
+    else
+        location = "";
+    bin_path = conf->getLocfield(location, "bin_path");
+    this->path = getRootDir(conf);
+}
 
 Cgi::~Cgi() {}
 
+std::string Cgi::getRootDir(Parser *conf) {
+    std::vector<std::string> v = split(path, "/");
+    try {
+        std::string cgiPath = v.at(0);
+        std::string result;
+        if ((result = conf->getLocfield("/" + cgiPath, "root")) != NOT_FOUND)
+            return result + "/" + v.at(1);
+    } catch (std::out_of_range &e) {
+        return path;
+    }
+    return path;
+}
+
 int Cgi::execute(int out, char **args, char **env) {
-    (void) out; //TODO tmp line
     int pid = fork();
     int status;
     if (pid < 0) {
@@ -27,6 +51,8 @@ int Cgi::execute(int out, char **args, char **env) {
         return 1;
     return status;
 }
+
+bool Cgi::wrongBinPath() {return bin_path == NOT_FOUND ? true : false;}
 
 bool Cgi::noSuchFile() {
     bool result = false;
@@ -60,6 +86,7 @@ int Cgi::launch(char **env) {
     if (status == 0) {
         it->second.response = tmpFile.read();
         it->second.status = 200;
+        it->second.readyToWriting = true;
     } else if (noSuchFile()) {
         it->second.status = 404;
     } else {
