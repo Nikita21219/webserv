@@ -21,8 +21,6 @@ Parser::Parser(std::string &data): DirectiveParser(data) {
 		else
 			break;
 	}
-	if (_contexts.size() == 0)
-		throw EmptyServerException();
 }
 
 Parser::Parser( const Parser & src ): DirectiveParser(src)
@@ -71,7 +69,6 @@ std::string Parser::getLocationkey(std::string &loc) {
 	std::string res = loc.substr(0, loc.find('\n'));
 	if (res[res.find("location") + 8] != ' ')
 		throw Parser::LocationFieldException();
-	res.erase(0, res.find("location") + 1);
 	res.erase(0, res.find(' ') + 1);
 	int i = 0;
 	while (res[i] == ' ')
@@ -85,7 +82,7 @@ std::string Parser::getLocationkey(std::string &loc) {
 	return res;
 }
 
-std::string Parser::findkeywordbyref(std::string const &key, DirectiveParser &dir) {
+std::string Parser::findkeywordbyref(std::string const &key, DirectiveParser const &dir) const {
 
 	if (dir.getContext().find(key) != dir.getContext().end())
 		return dir.getContext().find(key)->second;
@@ -102,24 +99,34 @@ const char* Parser::LocationRepeatException::what() const throw() {
 	return "There are two identical locations in your config file!";
 }
 
-const char* Parser::EmptyServerException::what() const throw() {
-	return "Error: Empty server!";
-}
-
 
 /*
 ** --------------------------------- ACCESSOR ---------------------------------
 */
 
-std::string Parser::getServfield(std::string const &key) {
+std::string Parser::getServfield(std::string const &key) const {
 	return findkeywordbyref(key, *this);
 }
 
-std::string Parser::getLocfield(std::string const &path, std::string const &key) {
+std::string Parser::getLocfield(std::string const &path, std::string const &key) const {
 	if (_locations.find(path) != _locations.end())
 		return findkeywordbyref(key, _locations.find(path)->second);
 	else
 		return NOT_FOUND;
+}
+
+void Parser::changefield(std::string const &key, std::string const &val) {
+	if (_contexts.find(key) != _contexts.end())
+		_contexts[key] = val;
+	else
+		_contexts.insert(_contexts.end(), std::pair<std::string, std::string>(key, val));
+}
+
+bool Parser::isThereLocation(std::string const &path) const {
+	if (_locations.find(path) != _locations.end())
+		return true;
+	else
+		return false;
 }
 
 /* ************************************************************************** */

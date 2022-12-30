@@ -62,7 +62,7 @@ void DirectiveParser::stringProcessing(std::string &str) {
 	while (1) {
 		saveloc += saveLocations(str);
 		std::string tmp = str.substr(0, str.find('\n'));
-		while (!tmp.size() && !str.empty()) {
+		while (!tmp.size()) {
 			str.erase(0, str.find('\n') + 1);
 			saveloc += saveLocations(str);
 			tmp = str.substr(0, str.find('\n'));
@@ -109,10 +109,31 @@ void DirectiveParser::saveContext(std::string &str) {
 			if (_contexts.size() > 0 && _contexts.find(_key_words[i]) != _contexts.end())
 				throw DirectiveParser::ProblemWithDirectiveException();
 			_contexts.insert(_contexts.end(), std::pair<std::string, std::string>(_key_words[i], str));
+			if (i == 0)
+				divide_listen(str);
 			return ;
 		}
 		if (i == 12)
 			throw DirectiveParser::ProblemWithDirectiveException();
+	}
+}
+
+void DirectiveParser::divide_listen(std::string str) {
+	std::vector<std::string> arr;
+	std::istringstream f(str);
+	std::string s;
+	while (getline(f, s, ':'))
+		arr.push_back(s);
+	if (arr.size() > 2)
+		throw std::runtime_error("Bad listen directive!");
+	else if (arr.size() == 2) {
+		_contexts.insert(_contexts.end(), std::pair<std::string, std::string>("host", arr[0]));
+		_contexts.insert(_contexts.end(), std::pair<std::string, std::string>("port", arr[1]));
+	} else {
+		if (arr[0].find('.') != std::string::npos)
+			_contexts.insert(_contexts.end(), std::pair<std::string, std::string>("host", arr[0]));
+		else
+			_contexts.insert(_contexts.end(), std::pair<std::string, std::string>("port", arr[0]));
 	}
 }
 
