@@ -51,26 +51,6 @@ int main(int argc, char **argv, char **env) {
 
     Server serv = Server(conf);
     serv.mainLoop(env);
-
-
-
-
-
-
-    (void) argv;
-    (void) argc;
-    std::map<std::string, std::string> m;
-    m["hello"] = "world";
-    m["test"] = "TEST";
-    for (std::map<std::string, std::string>::iterator i = m.begin(); i != m.end(); ++i) {
-        char *s = (char *)i->first.c_str();
-        printWar(s);
-    }
-
-
-
-
-
     return 0;
 }
 
