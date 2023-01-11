@@ -2,6 +2,8 @@
 
 const ResponseHandler::T ResponseHandler::_statusPairs[] = {
 	{200, "OK"},
+	{201, "Created"},
+	{400, "Bad Request"},
 	{404, "Not Found"},
 	{403, "Forbidden"},
 	{405, "Method Not Allowed"},
@@ -9,7 +11,11 @@ const ResponseHandler::T ResponseHandler::_statusPairs[] = {
 	{413, "Payload Too Large"},//close connection!!!
 	{505, "HTTP Version Not Supported"},
 	{501, "Not Implemented"},
+	{507, "Insufficient Storage"},
 	{1000, "Welcome page"}
+
+//414 URI Too Long
+//415 Unsupported Media Type
 };
 
 const std::map<int, std::string>  ResponseHandler::_status_codes(_statusPairs, _statusPairs + 9);
@@ -18,39 +24,41 @@ const std::map<int, std::string>  ResponseHandler::_status_codes(_statusPairs, _
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
-ResponseHandler::ResponseHandler(): _conf(0), _status_code(0), _data(0), _data_size(0), _last_modified(0) {}
+ResponseHandler::ResponseHandler(): _conf(0), _status_code(0),/* _data(0), _data_size(0),*/ _last_modified(0) {}
 
 ResponseHandler::ResponseHandler( const ResponseHandler & src ): _conf(src._conf),\
-					_status_code(src._status_code), _data_size(src._data_size), _last_modified(src._last_modified),\
+					_status_code(src._status_code), _data(src._data), _last_modified(src._last_modified),\
 					_path(src._path), _location(src._location), _root(src._root), _methods(src._methods) {
-	if (src._data) {
+/*	if (src._data) {
 		_data = new char[src._data_size];
 		for (ssize_t i = 0; i < _data_size; ++i)
 			reinterpret_cast<unsigned char *>(_data)[i] = reinterpret_cast<unsigned char *>(src._data)[i];
 	}
 	else
-		_data = 0;
+		_data = 0;*/
+
 }
 
 /*
 ** -------------------------------- DESTRUCTOR --------------------------------
 */
 
-ResponseHandler::~ResponseHandler() {
-	if (_data)
-		delete[] reinterpret_cast<unsigned char *>(_data);
-}
+ResponseHandler::~ResponseHandler() {}
 
 /*
 ** --------------------------------- OVERLOAD ---------------------------------
 */
 
 ResponseHandler &				ResponseHandler::operator=( ResponseHandler const & rhs ) {
-	(void)rhs;
-	//if ( this != &rhs )
-	//{
-		//this->_value = rhs.getValue();
-	//}
+	if ( this != &rhs ) {
+		_status_code = rhs._status_code;
+		_data = rhs._data;
+		_last_modified = rhs._last_modified;
+		_path = rhs._path;
+		_location = rhs._location;
+		_root = rhs._root;
+		_methods = rhs._methods;
+	}
 	return *this;
 }
 
@@ -66,18 +74,18 @@ std::ostream &			operator<<( std::ostream & o, ResponseHandler const & i ) {
 
 int ResponseHandler::prepareAnswer() {
 	if (_status_code)
-		generateErrorPage();
+		return generateErrorPage();
 	if (_root == NOT_FOUND) {
 		if (_path.size())
 			_status_code = 404;
 		else
 			_status_code = 1000;
-		generateErrorPage();
+		return generateErrorPage();
 	}
 	if (_header.find("GET") != _header.end())
 		return answerToGET();
 	else if (_header.find("POST") != _header.end())
-		answerToPOST();
+		return answerToPOST();
 	else if (_header.find("DELETE") != _header.end())
 		answerToDELETE();
 	return RequestHandler::ERROR_IN_REQUEST;
@@ -147,36 +155,34 @@ int ResponseHandler::answerToGET() {
 		resource_path = _path;
 	if (_methods != NOT_FOUND && _methods.find("GET") == std::string::npos) {
 		_status_code = 405;
-		generateErrorPage();
+		return generateErrorPage();
 	} else if (!add_index_if_needed(resource_path)) {
-		generateErrorPage();
+		return generateErrorPage();
 	} else if (access(resource_path.c_str(), F_OK)) {
 		if (_path == "Forbidden")
 			_status_code = 403;
 		else
 			_status_code = 404;
-		generateErrorPage();
+		return generateErrorPage();
 	} else if (access(resource_path.c_str(), R_OK)) {
 		_status_code = 403;
-		generateErrorPage();
+		return generateErrorPage();
 	}
 
 	read_binary_file(resource_path);
 	_status_code = 200;
-	createHTTPheader(setMimeType(resource_path), true);
+	createHTTPheader(setMimeType(resource_path), NOT_FOUND, true);
 
 	return RequestHandler::READY_TO_ASWER;
 }
 
-void ResponseHandler::answerToPOST() {}
-
 void ResponseHandler::answerToDELETE() {}
 
-void ResponseHandler::generateErrorPage() {
+int ResponseHandler::generateErrorPage() {
 	generateHTML();
-	createHTTPheader("text/html", false);
+	createHTTPheader("text/html", NOT_FOUND, false);
 
-	throw std::runtime_error("error page created!");
+	return RequestHandler::READY_TO_ASWER;
 }
 
 /* ************************************************************************** */

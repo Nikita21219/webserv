@@ -3,7 +3,7 @@
 
 # include "webserv.h"
 
-#define BUF_SZ 2048
+# define BUF_SZ 2048
 
 class ResponseHandler;
 
@@ -44,6 +44,7 @@ class RequestHandler
 		void	parse_string(std::string str);
 		int		select_serv(std::string const str);
 		void	download_data(ssize_t size, ssize_t header_size);
+		bool	multipart_parser(ssize_t &header_size);
 
 };
 

@@ -7,6 +7,7 @@
 SocketMaster::SocketMaster(std::vector<Parser> &conf, fd_set &read_set, int &max_sock): _conf(conf) {
 	struct sockaddr_in	addr;
 	int					port;
+	int					err = 0;
 	addr.sin_family = AF_INET;
 	for (unsigned long i = 0; i < conf.size(); ++i) {
 		if (_conf[i].getServfield("port") == NOT_FOUND) {
@@ -24,12 +25,14 @@ SocketMaster::SocketMaster(std::vector<Parser> &conf, fd_set &read_set, int &max
 		if (checkdups(i))
 			continue;
 		if (_conf[i].getServfield("listen") == NOT_FOUND)
-			getListenSocket(addr, i, "0.0.0.0:8080");
+			err = getListenSocket(addr, i, "0.0.0.0:8080");
 		else
-			getListenSocket(addr, i, _conf[i].getServfield("listen"));
-		FD_SET(_listen_sockets[i], &read_set);
-		if (_listen_sockets[i] >= max_sock)
-			max_sock = _listen_sockets[i] + 1;
+			err = getListenSocket(addr, i, _conf[i].getServfield("listen"));
+		if (!err) {
+			FD_SET(_listen_sockets[i], &read_set);
+			if (_listen_sockets[i] >= max_sock)
+				max_sock = _listen_sockets[i] + 1;
+		}
 	}
 }
 
@@ -64,22 +67,23 @@ std::ostream &			operator<<( std::ostream & o, SocketMaster const & i ) {
 ** --------------------------------- METHODS ----------------------------------
 */
 
-void SocketMaster::getListenSocket(struct sockaddr_in &addr, int id, std::string const &host) {
+bool SocketMaster::getListenSocket(struct sockaddr_in &addr, int id, std::string const &host) {
 	int opt = 1;
 	int sock;
 	if ((sock = socket(PF_INET, SOCK_STREAM, 0)) < 0)
-		throw -1;
+		return 1;
 	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)))
-		throw -1;
+		return 1;
 	if (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt)))
-		throw -1;
+		return 1;
 	if (fcntl(sock, F_SETFL, O_NONBLOCK) < 0)
-		throw -1;
+		return 1;
 	if (bind(sock, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr)))
 		throw std::runtime_error("Error: bind() to " + host + " failed!");
 	if (listen(sock, MAX_QUEUE))
-		throw -1;
+		return 1;
 	_listen_sockets.insert(_listen_sockets.end(), std::pair<int, int>(id, sock));
+	return 0;
 }
 
 void SocketMaster::acceptNewClients(fd_set &tmp_read_set, fd_set &read_set, int &max_sock) {
@@ -108,21 +112,17 @@ void	SocketMaster::check_clients(fd_set &tmp_read_set, fd_set &tmp_write_set, fd
 		if (FD_ISSET(it->get_sock(), &tmp_read_set)) {
 			try {
 				it->serve_client(write_set);
-			} catch (int err) {
-				if (err == 1) {
-					removeClient(it, read_set, write_set);
-					continue;
-				}
+			} catch (int) {
+				removeClient(it, read_set, write_set);
+				continue;
 			}
 		}
 		if (FD_ISSET(it->get_sock(), &tmp_write_set) && it->setStatus() == RequestHandler::READY_TO_ASWER) {
 			try {
 				it->sendResponse(write_set);
-			} catch (int err) {
-				if (err == 1) {
-					removeClient(it, read_set, write_set);
-					continue;
-				}
+			} catch (int) {
+				removeClient(it, read_set, write_set);
+				continue;
 			}
 		}
 		++it;

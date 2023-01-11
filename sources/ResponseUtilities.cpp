@@ -57,7 +57,7 @@ Connection: keep-alive
 
 */
 
-void ResponseHandler::createHTTPheader(std::string mimeType, bool flag) {
+void ResponseHandler::createHTTPheader(std::string mimeType, std::string location, bool flag) {
 	std::stringstream http_header;
 
 	http_header << "HTTP/1.1 " << _status_code << ' ' << _status_codes.find(_status_code)->second << "\r\n";
@@ -67,6 +67,8 @@ void ResponseHandler::createHTTPheader(std::string mimeType, bool flag) {
 	http_header << "Date: " << getDate(std::time(0)) << "\r\n";
 	http_header << "Content-Length: " << _response_data.size() << "\r\n";
 	http_header << "Server: webserv\r\n";
+	if (location != NOT_FOUND)
+		http_header << "Location: " << location << "\r\n";
 	if (flag)
 		http_header << "Last-Modified: " << getDate(_last_modified) << "\r\n";
 	http_header << "Connection: keep-alive";
@@ -150,12 +152,8 @@ int& ResponseHandler::setStatus_code() {
 	return _status_code;
 }
 
-void*& ResponseHandler::setData() {
+std::vector<unsigned char>& ResponseHandler::setData() {
 	return _data;
-}
-
-ssize_t& ResponseHandler::setData_size() {
-	return _data_size;
 }
 
 const std::string& ResponseHandler::getMethods() const {

@@ -25,7 +25,7 @@ class SocketMaster
 		std::map<int, int>				_listen_sockets;
 
 		SocketMaster();
-		void	getListenSocket(struct sockaddr_in &addr, int id, std::string const &host);
+		bool	getListenSocket(struct sockaddr_in &addr, int id, std::string const &host);
 		bool	checkdups(int id);
 		void	removeClient(std::vector<RequestHandler>::iterator it, fd_set &read_set, fd_set &write_set);
 

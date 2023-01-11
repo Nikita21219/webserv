@@ -46,14 +46,10 @@ std::ostream &			operator<<( std::ostream & o, RequestHandler const & i ) {
 */
 
 void RequestHandler::serve_client(fd_set &write_set) {
-	try {
-		if (_status == NEW)
-			new_reading();
-		else if (_status == MUST_KEEP_READING)
-			continue_reading();
-	} catch (std::exception &) {
-		_status = READY_TO_ASWER;
-	}
+	if (_status == NEW)
+		new_reading();
+	else if (_status == MUST_KEEP_READING)
+		continue_reading();
 	if (_status == READY_TO_ASWER)
 		FD_SET(_client_socket, &write_set);
 }
@@ -69,7 +65,11 @@ void RequestHandler::new_reading() {
 	if (str.substr(0, str.find('\n')).find("HTTP/1.1") == std::string::npos) {
 		_answer->setStatus_code() = 505;//answer: 505 http not suported!
 		_status = static_cast<request_status>(_answer->prepareAnswer());//is it right?
+		return;
 	}
+
+//	std::cout << str;
+
 	while (1) {
 		end = str.find('\n') + 1;
 		header_size += end;
@@ -79,7 +79,6 @@ void RequestHandler::new_reading() {
 		parse_string(tmp);
 		str.erase(0, end);
 	}
-
 	if (_answer->getHeader().find("Host") != _answer->getHeader().end())
 		_answer->extract_info(&_conf[select_serv(_answer->getHeader().find("Host")->second)]);
 	else
@@ -109,16 +108,48 @@ void RequestHandler::download_data(ssize_t size, ssize_t header_size) {
 		_answer->setStatus_code() = 413;
 		return;
 	}
-	unsigned char *data_tmp = new unsigned char[content_lenght];
-	ssize_t j = 0;
-	for (ssize_t i = header_size; i < content_lenght + header_size && i < size; ++i) {
-		data_tmp[j] = _buf[i];
-		j++;
+	if (!multipart_parser(header_size)) {
+		_answer->setStatus_code() = 400;
+		return;
 	}
-	_answer->setData() = data_tmp;
-	_answer->setData_size() = j;
-	if (j < content_lenght)
+
+	_answer->setData().insert(_answer->setData().begin(), _buf + header_size, _buf + size);
+	if (static_cast<ssize_t>(_answer->setData().size()) < content_lenght)
 		_status = MUST_KEEP_READING;
+}
+
+bool RequestHandler::multipart_parser(ssize_t &header_size) {
+	if (_answer->getHeader().find("Content-Type") == _answer->getHeader().end() ||\
+		_answer->getHeader().find("Content-Type")->second.find("multipart/form-data") == std::string::npos)
+		return true;
+	std::string boundary;
+	boundary = _answer->getHeader().find("Content-Type")->second;
+	boundary = boundary.substr(boundary.find("boundary") + 9, boundary.size() - boundary.find("boundary") + 9);
+	boundary.erase(std::remove(boundary.begin(), boundary.end(), '-'), boundary.end());
+	_answer->setHeader().erase("Content-Type");
+
+	std::stringstream stream(reinterpret_cast<char *>(_buf + header_size));
+	std::string tmp;
+	std::getline(stream, tmp);
+	ssize_t multipart_size = tmp.size() + 1;
+	tmp.erase(std::remove(tmp.begin(), tmp.end(), '-'), tmp.end());
+	tmp.erase(std::remove(tmp.begin(), tmp.end(), '\r'), tmp.end());
+	if (boundary != tmp)
+		return false;
+
+	std::getline(stream, tmp);
+	multipart_size += tmp.size() + 1;
+	while (tmp[0] != '\r' && tmp[0] != '\n') {
+		tmp += '\n';
+		parse_string(tmp);
+		std::getline(stream, tmp);
+		multipart_size += tmp.size() + 1;
+	}
+	std::stringstream t;
+	t << atoi(_answer->setHeader().at("Content-Length").c_str()) - multipart_size;
+	_answer->setHeader().at("Content-Length") = t.str();
+	header_size += multipart_size;
+	return true;
 }
 
 void RequestHandler::continue_reading() {
@@ -126,13 +157,12 @@ void RequestHandler::continue_reading() {
 	if (size <= 0)
 		throw 1;
 	ssize_t content_lenght = atoi(_answer->setHeader().find("Content-Length")->second.c_str());
-	ssize_t j = _answer->setData_size();
-	for (ssize_t i = 0; j < content_lenght && i < size; i++) {
-		reinterpret_cast<unsigned char *>(_answer->setData())[j] = _buf[i];
-		j++;
-	}
-	_answer->setData_size() = j;
-	if (j == content_lenght)
+	if (static_cast<ssize_t>(_answer->setData().size() + size) <= content_lenght)
+		_answer->setData().insert(_answer->setData().end(), _buf, _buf + size);
+	else
+		_answer->setData().insert(_answer->setData().end(), _buf, _buf + (content_lenght - _answer->setData().size()));
+
+	if (static_cast<ssize_t>(_answer->setData().size()) == content_lenght)
 		_status = static_cast<request_status>(_answer->prepareAnswer());
 }
 
@@ -153,7 +183,7 @@ void RequestHandler::parse_string(std::string str) {
 	}
 	str.erase(0, str.find(' ') + 1);
 	value = str.substr(0, str.find('\n'));
-	if (value.find('\r'))
+	if (value.find('\r') != std::string::npos)//check this
 		value = value.substr(0, value.find('\r'));
 	_answer->setHeader().insert(_answer->setHeader().end(), std::pair<std::string, std::string>(key, value));
 }

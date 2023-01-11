@@ -18,8 +18,7 @@ class ResponseHandler
 		const std::string&							getLocation() const;
 		const Parser*								getConf() const;
 		int&										setStatus_code();
-		void*&										setData();
-		ssize_t&									setData_size();
+		std::vector<unsigned char>&					setData();
 
 		const std::string&							getPath() const;
 
@@ -44,8 +43,7 @@ class ResponseHandler
 		std::map<std::string, std::string>	_header;
 		const Parser						*_conf;
 		int									_status_code;
-		void								*_data;
-		ssize_t								_data_size;
+		std::vector<unsigned char>			_data;
 		std::time_t							_last_modified;
 
 		std::string							_path;
@@ -55,16 +53,19 @@ class ResponseHandler
 		std::vector<unsigned char>			_response_data;
 
 		int			answerToGET();
-		void		generateErrorPage();
-		void		answerToPOST();
+		int			generateErrorPage();
+		int			answerToPOST();
 		void		answerToDELETE();
 		void		findLocation();
 		bool		add_index_if_needed(std::string &resource_path);
 		void		read_binary_file(const std::string filename);
-		void		createHTTPheader(std::string mimeType, bool flag);
+		void		createHTTPheader(std::string mimeType, std::string location, bool flag);
 		std::string	setMimeType(std::string &path);
 		std::string	getDate(std::time_t t);
 		void		generateHTML();
+
+		std::string	create_filename() const;
+		void		successful_response_html(std::string s);
 
 };
 
