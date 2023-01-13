@@ -57,7 +57,7 @@ Connection: keep-alive
 
 */
 
-void ResponseHandler::createHTTPheader(std::string mimeType, bool flag) {
+void ResponseHandler::createHTTPheader(std::string mimeType, bool flag, std::string redirectTo) {
 	std::stringstream http_header;
 
 	http_header << "HTTP/1.1 " << _status_code << ' ' << _status_codes.find(_status_code)->second << "\r\n";
@@ -69,7 +69,9 @@ void ResponseHandler::createHTTPheader(std::string mimeType, bool flag) {
 	http_header << "Server: webserv\r\n";
 	if (flag)
 		http_header << "Last-Modified: " << getDate(_last_modified) << "\r\n";
-	http_header << "Connection: keep-alive";
+    if (_status_code == 301)
+        http_header << "Location: " << redirectTo << "\r\n"; // TODO need to fix
+    http_header << "Connection: keep-alive";
 	http_header << "\r\n\r\n";
 
 	std::string tmp = http_header.str();

@@ -51,11 +51,11 @@ void RequestHandler::serve_client(fd_set &write_set) {
 			new_reading();
 		else if (_status == MUST_KEEP_READING)
 			continue_reading();
-	} catch (std::exception &) {
+    } catch (std::exception &) {
 		_status = READY_TO_ASWER;
 	}
 	if (_status == READY_TO_ASWER)
-		FD_SET(_client_socket, &write_set);
+        FD_SET(_client_socket, &write_set);
 }
 
 void RequestHandler::new_reading() {

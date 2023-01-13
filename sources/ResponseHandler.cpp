@@ -71,17 +71,17 @@ int ResponseHandler::prepareAnswer() {
     if (_root == NOT_FOUND) {
         if (_path.size())
             _status_code = 404;
-		else
-			_status_code = 1000;
+        else
+            _status_code = 1000;
         generateErrorPage();
-	}
+    }
     if (_header.find("GET") != _header.end())
-		return answerToGET();
-	else if (_header.find("POST") != _header.end())
-		answerToPOST();
-	else if (_header.find("DELETE") != _header.end())
-		answerToDELETE();
-	return RequestHandler::ERROR_IN_REQUEST;
+        return answerToGET();
+    else if (_header.find("POST") != _header.end())
+        answerToPOST();
+    else if (_header.find("DELETE") != _header.end())
+        answerToDELETE();
+    return RequestHandler::ERROR_IN_REQUEST;
 }
 
 void ResponseHandler::sendResponseToClient(int fd) {
@@ -111,8 +111,8 @@ void ResponseHandler::extract_info(const Parser *conf) {
 	findLocation();
 	if (_location != NOT_FOUND) {
         _root = _conf->getLocfield(_location, "root");
-        // if (_root == NOT_FOUND) // TODO modified by bclarind
-        //     _root = _conf->getServfield("root"); // TODO modified by bclarind
+        if (_root == NOT_FOUND)
+            _root = _conf->getServfield("root");
         _methods = _conf->getLocfield(_location, "methods");
 	} else {
 		_root = _conf->getServfield("root");
@@ -158,15 +158,14 @@ int ResponseHandler::handleCgi() {
 }
 
 int ResponseHandler::answerToGET() {
-    std::string resource_path;
+    std::string resource_path, redirectTo;
     if (_root.size() > 1 && _path.size() > 1)
         resource_path = _root + _path;
 	else if (_root.size() > 1)
 		resource_path = _root;
 	else
 		resource_path = _path;
-    // TODO modified by bclarind. Need to handle QUERY STRING. Is it ok?
-    resource_path = split(resource_path, "?").at(0);
+    resource_path = split(resource_path, "?").at(0); // TODO modified by bclarind. Need to handle QUERY STRING. Is it ok?
 
     if (_methods != NOT_FOUND && _methods.find("GET") == std::string::npos) {
         _status_code = 405;
@@ -184,13 +183,19 @@ int ResponseHandler::answerToGET() {
 		generateErrorPage();
     }
 
+    if ((redirectTo = _conf->getLocfield(_location, "redirection")) != NOT_FOUND) {
+        _status_code = 301;
+        createHTTPheader(setMimeType(resource_path), true, redirectTo);
+        return RequestHandler::READY_TO_ASWER;
+    }
+
     if (_conf->getLocfield(_location, "bin_path") != NOT_FOUND) {
         handleCgi();
     } else {
         read_binary_file(resource_path);
         _status_code = 200;
     }
-	createHTTPheader(setMimeType(resource_path), true);
+    createHTTPheader(setMimeType(resource_path), true);
 
 	return RequestHandler::READY_TO_ASWER;
 }
@@ -201,7 +206,7 @@ void ResponseHandler::answerToDELETE() {}
 
 void ResponseHandler::generateErrorPage() {
 	generateHTML();
-	createHTTPheader("text/html", false);
+    createHTTPheader("text/html", false);
 
 	throw std::runtime_error("error page created!");
 }
