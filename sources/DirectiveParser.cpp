@@ -2,7 +2,7 @@
 
 std::string const DirectiveParser::_key_words[13] = {"listen", "server_name", "root", "autoindex", "methods", \
 		"max_body_size", "directory", "index", "bin_path", "redirection", "alias", "cgi_pass", "location"};
-
+// TODO need to delete cgi_pass
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */

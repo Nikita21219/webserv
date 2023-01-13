@@ -5,5 +5,5 @@ date
 echo '</h1>'
 echo '<br>'
 echo '<pre>'
-env | grep -v MYSQL_PASS
+env | grep -v MYSQL_PASS | grep -v SLACK
 echo '</pre>'

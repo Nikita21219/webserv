@@ -68,7 +68,7 @@ std::ostream &			operator<<( std::ostream & o, ResponseHandler const & i ) {
 int ResponseHandler::prepareAnswer() {
     if (_status_code)
         generateErrorPage();
-	if (_root == NOT_FOUND) {
+    if (_root == NOT_FOUND) {
         if (_path.size())
             _status_code = 404;
 		else
@@ -111,7 +111,9 @@ void ResponseHandler::extract_info(const Parser *conf) {
 	findLocation();
 	if (_location != NOT_FOUND) {
         _root = _conf->getLocfield(_location, "root");
-		_methods = _conf->getLocfield(_location, "methods");
+        // if (_root == NOT_FOUND) // TODO modified by bclarind
+        //     _root = _conf->getServfield("root"); // TODO modified by bclarind
+        _methods = _conf->getLocfield(_location, "methods");
 	} else {
 		_root = _conf->getServfield("root");
 		_methods = _conf->getServfield("methods");
@@ -145,7 +147,7 @@ int ResponseHandler::handleCgi() {
         printErr("File not opened"); //TODO tmp line
         return 1;
     }
-    Cgi cgi = Cgi(_root + _path, "/usr/local/bin/python3");
+    Cgi cgi = Cgi(_root + _path, _conf->getLocfield(_location, "bin_path"));
     if (cgi.launch(_env, tmpFile.getFd())) {
         _status_code = 500;
         generateErrorPage();
@@ -156,14 +158,14 @@ int ResponseHandler::handleCgi() {
 }
 
 int ResponseHandler::answerToGET() {
-	std::string resource_path;
+    std::string resource_path;
     if (_root.size() > 1 && _path.size() > 1)
         resource_path = _root + _path;
 	else if (_root.size() > 1)
 		resource_path = _root;
 	else
 		resource_path = _path;
-    // TODO modified by bclarind. Need to hancle QUERY STRING. Is it ok?
+    // TODO modified by bclarind. Need to handle QUERY STRING. Is it ok?
     resource_path = split(resource_path, "?").at(0);
 
     if (_methods != NOT_FOUND && _methods.find("GET") == std::string::npos) {
@@ -182,7 +184,7 @@ int ResponseHandler::answerToGET() {
 		generateErrorPage();
     }
 
-    if (resource_path.find("cgi") != std::string::npos) {
+    if (_conf->getLocfield(_location, "bin_path") != NOT_FOUND) {
         handleCgi();
     } else {
         read_binary_file(resource_path);
