@@ -23,6 +23,7 @@
 #include <sys/stat.h>
 #include <ctime>
 #include <locale>
+#include <dirent.h>
 
 #include "Utils.hpp"
 #include "Parser.hpp"

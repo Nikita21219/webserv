@@ -10,6 +10,9 @@ int ResponseHandler::answerToPOST() {
 	if (file_name == "_error") {
 		_status_code = 400;
 		return generateErrorPage();
+	} else if (!access(file_name.c_str(), F_OK)) {
+		_status_code = 409;
+		return generateErrorPage();
 	}
 	std::ofstream f_out(file_name.c_str(), std::ios::out | std::ios::binary);
 	if (!f_out.is_open()) {
@@ -26,8 +29,10 @@ int ResponseHandler::answerToPOST() {
 	f_out.close();
 	_data.clear();
 	_status_code = 201;
-	successful_response_html("downloaded");
-	createHTTPheader("text/html", file_name, false);
+	if (_header.find("Content-Type") != _header.end())
+		createHTTPheader(_header.find("Content-Type")->second, file_name, NOT_FOUND, false);
+	else
+		createHTTPheader("text/plain", file_name, NOT_FOUND, false);
 	return RequestHandler::READY_TO_ASWER;
 }
 
@@ -54,7 +59,7 @@ std::string ResponseHandler::create_filename() const {
 		return _root + name;
 }
 
-void ResponseHandler::successful_response_html(std::string s) {
+/*void ResponseHandler::successful_response_html(std::string s) {
 	std::stringstream html;
 
 	html << "<!DOCTYPE html>";
@@ -70,4 +75,4 @@ void ResponseHandler::successful_response_html(std::string s) {
 
 	std::string tmp = html.str();
 	_response_data.insert(_response_data.begin(), tmp.c_str(), tmp.c_str() + tmp.size());
-}
+}*/

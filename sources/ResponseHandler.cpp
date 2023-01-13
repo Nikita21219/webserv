@@ -3,12 +3,15 @@
 const ResponseHandler::T ResponseHandler::_statusPairs[] = {
 	{200, "OK"},
 	{201, "Created"},
+	{204, "No Content"},
 	{400, "Bad Request"},
 	{404, "Not Found"},
 	{403, "Forbidden"},
 	{405, "Method Not Allowed"},
+	{409, "Conflict"},
 	{411, "Length Required"},
 	{413, "Payload Too Large"},//close connection!!!
+	{500, "Internal Server Error"},
 	{505, "HTTP Version Not Supported"},
 	{501, "Not Implemented"},
 	{507, "Insufficient Storage"},
@@ -18,7 +21,7 @@ const ResponseHandler::T ResponseHandler::_statusPairs[] = {
 //415 Unsupported Media Type
 };
 
-const std::map<int, std::string>  ResponseHandler::_status_codes(_statusPairs, _statusPairs + 9);
+const std::map<int, std::string>  ResponseHandler::_status_codes(_statusPairs, _statusPairs + 15);
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -86,9 +89,8 @@ int ResponseHandler::prepareAnswer() {
 		return answerToGET();
 	else if (_header.find("POST") != _header.end())
 		return answerToPOST();
-	else if (_header.find("DELETE") != _header.end())
-		answerToDELETE();
-	return RequestHandler::ERROR_IN_REQUEST;
+	else
+		return answerToDELETE();
 }
 
 void ResponseHandler::sendResponseToClient(int fd) {
@@ -146,13 +148,13 @@ void ResponseHandler::findLocation() {
 }
 
 int ResponseHandler::answerToGET() {
-	std::string resource_path;
-	if (_root.size() > 1 && _path.size() > 1)
+	std::string resource_path = getResourse_path();
+/*	if (_root.size() > 1 && _path.size() > 1)
 		resource_path = _root + _path;
 	else if (_root.size() > 1)
 		resource_path = _root;
 	else
-		resource_path = _path;
+		resource_path = _path;*/
 	if (_methods != NOT_FOUND && _methods.find("GET") == std::string::npos) {
 		_status_code = 405;
 		return generateErrorPage();
@@ -171,16 +173,44 @@ int ResponseHandler::answerToGET() {
 
 	read_binary_file(resource_path);
 	_status_code = 200;
-	createHTTPheader(setMimeType(resource_path), NOT_FOUND, true);
+	createHTTPheader(setMimeType(resource_path), NOT_FOUND, NOT_FOUND, true);
 
 	return RequestHandler::READY_TO_ASWER;
 }
 
-void ResponseHandler::answerToDELETE() {}
+int ResponseHandler::answerToDELETE() {
+	std::string resource_path = getResourse_path();
+	if (_methods.find("DELETE") == std::string::npos) {
+		_status_code = 405;
+		return generateErrorPage();
+	}
+	if(access(resource_path.c_str(), F_OK)) {
+		_status_code = 404;
+		return generateErrorPage();
+	} else if (resource_path == _root) {
+		_status_code = 403;
+		return generateErrorPage();
+	} else if (folderIsNotEmpty(resource_path)) {
+		_status_code = 409;
+		return generateErrorPage();
+	}
+
+	if (std::remove(resource_path.c_str())) {
+		_status_code = 403;
+		return generateErrorPage();
+	}
+	_status_code = 204;
+	createHTTPheader("text/plain", NOT_FOUND, NOT_FOUND, false);
+
+	return RequestHandler::READY_TO_ASWER;
+}
 
 int ResponseHandler::generateErrorPage() {
 	generateHTML();
-	createHTTPheader("text/html", NOT_FOUND, false);
+	if (_status_code == 405)
+		createHTTPheader("text/html", NOT_FOUND, _methods, false);
+	else
+		createHTTPheader("text/html", NOT_FOUND, NOT_FOUND, false);
 
 	return RequestHandler::READY_TO_ASWER;
 }

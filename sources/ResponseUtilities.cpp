@@ -57,7 +57,7 @@ Connection: keep-alive
 
 */
 
-void ResponseHandler::createHTTPheader(std::string mimeType, std::string location, bool flag) {
+void ResponseHandler::createHTTPheader(std::string mimeType, std::string location, std::string allow, bool flag) {
 	std::stringstream http_header;
 
 	http_header << "HTTP/1.1 " << _status_code << ' ' << _status_codes.find(_status_code)->second << "\r\n";
@@ -67,6 +67,8 @@ void ResponseHandler::createHTTPheader(std::string mimeType, std::string locatio
 	http_header << "Date: " << getDate(std::time(0)) << "\r\n";
 	http_header << "Content-Length: " << _response_data.size() << "\r\n";
 	http_header << "Server: webserv\r\n";
+	if (allow != NOT_FOUND)
+		http_header << "Allow: " << allow << "\r\n";
 	if (location != NOT_FOUND)
 		http_header << "Location: " << location << "\r\n";
 	if (flag)
@@ -134,6 +136,32 @@ void ResponseHandler::generateHTML() {
 
 	std::string tmp = html.str();
 	_response_data.insert(_response_data.begin(), tmp.c_str(), tmp.c_str() + tmp.size());
+}
+
+std::string ResponseHandler::getResourse_path() const {
+	if (_root.size() > 1 && _path.size() > 1)
+		return _root + _path;
+	else if (_root.size() > 1)
+		return _root;
+	else
+		return _path;
+}
+
+bool ResponseHandler::folderIsNotEmpty(std::string &resource_path) const {
+	DIR* dir = opendir(resource_path.c_str());
+	if (dir) {
+		struct dirent* ent;
+		int count = 0;
+		while ((ent = readdir(dir)) != NULL) {
+			count++;
+		}
+		closedir(dir);
+		if (count > 2) {
+			return true;
+		} else
+			return false;
+	} else
+		return false;
 }
 
 /*
