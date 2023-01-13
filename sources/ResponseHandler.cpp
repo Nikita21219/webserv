@@ -163,8 +163,10 @@ int ResponseHandler::answerToGET() {
 		resource_path = _root;
 	else
 		resource_path = _path;
+    // TODO modified by bclarind. Need to hancle QUERY STRING. Is it ok?
+    resource_path = split(resource_path, "?").at(0);
 
-	if (_methods != NOT_FOUND && _methods.find("GET") == std::string::npos) {
+    if (_methods != NOT_FOUND && _methods.find("GET") == std::string::npos) {
         _status_code = 405;
         generateErrorPage();
 	} else if (!add_index_if_needed(resource_path)) {

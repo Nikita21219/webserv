@@ -22,7 +22,7 @@ bool ResponseHandler::add_index_if_needed(std::string &resource_path) {
 		_status_code = 404;
 		return false;
 	}
-	_last_modified = 1; // TODO for mac os only
+	_last_modified = 1; // TODO modified by bclarind. for mac os only
 	return true;
 }
 
