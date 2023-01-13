@@ -1,41 +1,6 @@
 
 #include "webserv.h"
 
-int cgiExec(int out, std::string bin_path, char **args, char **env) {
-    int pid = fork();
-    int status;
-    if (pid < 0) {
-        printErr("Fork error");
-        return 1;
-    }
-    else if (pid == 0) {
-        dup2(out, STDOUT_FILENO);
-        if (execve(bin_path.c_str(), args, env) < 0)
-            exit(1);
-        exit(0);
-    }
-    if (waitpid(pid, &status, 0) < 0)
-        return 1;
-    return status;
-}
-
-int cgi_launch(char **env) {
-    TempFile tmpFile = TempFile("cgi_out");
-    if (!tmpFile.isOpen()) {
-        printErr("File not opened");
-        return 1;
-    }
-    std::string path = "cgi/main.py";
-    char **args = (char **)malloc(sizeof(char *) * 3);
-    args[0] = (char *)path.c_str();
-    args[1] = (char *)path.c_str();
-    args[2] = NULL;
-    int status = cgiExec(tmpFile.getFd(), "/usr/local/bin/python3", args, env);
-    delete [] args;
-    std::cout << tmpFile.read() << "\n";
-    return status;
-}
-
 int main(int argc, char **argv, char **env) {
     std::vector<Parser> conf;
 	const char *file_conf;

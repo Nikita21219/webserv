@@ -11,13 +11,10 @@ class Cgi {
 public:
     Cgi(std::string path, std::string bin_path);
     ~Cgi();
-    bool wrongBinPath();
     int launch(char **env, int fd);
 
 private:
     int execute(int out, char **args, char **env);
-    bool noSuchFile();
-    std::string getRootDir(Parser *conf);
 
     std::string path;
     std::map<int, fd_info>::iterator it;

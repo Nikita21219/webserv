@@ -74,7 +74,7 @@ int ResponseHandler::prepareAnswer() {
 			_status_code = 1000;
         generateErrorPage();
 	}
-	if (_header.find("GET") != _header.end())
+    if (_header.find("GET") != _header.end())
 		return answerToGET();
 	else if (_header.find("POST") != _header.end())
 		answerToPOST();
@@ -122,7 +122,7 @@ void ResponseHandler::findLocation() {
 		_location = _path;
 		_path.clear();
 		return;
-	} else if (_path.size() > 1 && _path.find("cgi") == std::string::npos) {
+	} else if (_path.size() > 1) {
 		std::vector<std::string> arr = split(_path, "/");
 		if (_conf->isThereLocation('/' + arr[1])) {
             _path = _path.substr(arr[1].size() + 1, _path.size() - arr[1].size() + 1);
@@ -139,14 +139,12 @@ void ResponseHandler::findLocation() {
 
 int ResponseHandler::handleCgi() {
     std::string resultFile = _root + "/cgi_out";
-    // printWar("resultFile: " + resultFile);
     TempFile tmpFile = TempFile(resultFile/* + itos(it->first)*/);
     if (!tmpFile.isOpen()) {
         printErr("File not opened"); //TODO tmp line
         return 1;
     }
-    sleep(10);
-    Cgi cgi = Cgi(_path, "/usr/local/bin/python3");
+    Cgi cgi = Cgi(_root + _path, "/usr/local/bin/python3");
     if (cgi.launch(_env, tmpFile.getFd())) {
         _status_code = 500;
         return 1;
@@ -170,8 +168,7 @@ int ResponseHandler::answerToGET() {
         generateErrorPage();
 	} else if (!add_index_if_needed(resource_path)) {
         generateErrorPage();
-	} else if (access(resource_path.c_str(), F_OK) && \
-    (resource_path.find("cgi") == std::string::npos)) { // TODO tmp condition
+	} else if (access(resource_path.c_str(), F_OK)) {
         if (_path == "Forbidden")
 			_status_code = 403;
 		else

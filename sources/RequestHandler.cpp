@@ -84,10 +84,10 @@ void RequestHandler::new_reading() {
 		_answer->extract_info(&_conf[select_serv(_answer->getHeader().find("Host")->second)]);
 	else
 		_answer->extract_info(&_conf[_serv_id]);
-	if (_answer->getHeader().find("POST") != _answer->getHeader().end())
+    if (_answer->getHeader().find("POST") != _answer->getHeader().end())
 		download_data(size, header_size);
 	if (_status != MUST_KEEP_READING)
-		_status = static_cast<request_status>(_answer->prepareAnswer());
+        _status = static_cast<request_status>(_answer->prepareAnswer());
 }
 
 void RequestHandler::download_data(ssize_t size, ssize_t header_size) {
