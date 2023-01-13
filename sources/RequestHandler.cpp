@@ -4,9 +4,9 @@
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
-RequestHandler::RequestHandler(std::vector<Parser> const &conf, int sock, unsigned long id, request_status s): _conf(conf),\
+RequestHandler::RequestHandler(std::vector<Parser> const &conf, int sock, unsigned long id, request_status s, char **env): _conf(conf),\
 				_serv_id(id), _client_socket(sock), _status(s) {
-	_answer = new ResponseHandler();
+	_answer = new ResponseHandler(env);
 }
 
 RequestHandler::RequestHandler( const RequestHandler & src ): _conf(src._conf),\

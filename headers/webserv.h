@@ -26,9 +26,14 @@
 
 #include "Utils.hpp"
 #include "Parser.hpp"
+#include "TempFile.hpp"
+#include "CgiEnv.hpp"
+#include "Cgi.hpp"
 #include "ResponseHandler.hpp"
 #include "RequestHandler.hpp"
 #include "SocketMaster.hpp"
 #include "Server.hpp"
+
+// #include <string.h>// hello ubuntu
 
 #endif //WEBSERV_WEBSERV_H

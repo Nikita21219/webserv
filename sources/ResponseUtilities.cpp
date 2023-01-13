@@ -6,7 +6,7 @@
 
 bool ResponseHandler::add_index_if_needed(std::string &resource_path) {
 	struct stat s;
-	if(stat(resource_path.c_str(), &s) == 0) {
+    if(stat(resource_path.c_str(), &s) == 0) {
 		if(s.st_mode & S_IFDIR) {
 			_path = "Forbidden";
 			if (_conf->getLocfield(_location, "index") != NOT_FOUND)
@@ -22,7 +22,7 @@ bool ResponseHandler::add_index_if_needed(std::string &resource_path) {
 		_status_code = 404;
 		return false;
 	}
-	_last_modified = s.st_mtim.tv_sec;
+	_last_modified = 1; // TODO for mac os only
 	return true;
 }
 

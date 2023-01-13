@@ -8,7 +8,7 @@ class ResponseHandler
 
 	public:
 
-		ResponseHandler();
+		ResponseHandler(char **env);
 		ResponseHandler( ResponseHandler const & src );
 		~ResponseHandler();
 
@@ -52,6 +52,7 @@ class ResponseHandler
 		std::string							_location;
 		std::string							_root;
 		std::string							_methods;
+		char    							**_env;
 		std::vector<unsigned char>			_response_data;
 
 		int			answerToGET();
@@ -65,7 +66,7 @@ class ResponseHandler
 		std::string	setMimeType(std::string &path);
 		std::string	getDate(std::time_t t);
 		void		generateHTML();
-
+        int         handleCgi();
 };
 
 std::ostream &			operator<<( std::ostream & o, ResponseHandler const & i );
