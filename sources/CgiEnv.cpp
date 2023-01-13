@@ -39,7 +39,7 @@ char **CgiEnv::toCArray() {
     int idx = 0;
     for (std::map<std::string, std::string>::iterator i = env.begin(); i != env.end(); i++) {
         std::string str = i->first + "=" + i->second;
-        char *cstr = new char [str.length() + 1];
+        char *cstr = (char *) calloc(str.length() + 1, sizeof(char));
         std::strcpy(cstr, str.c_str());
         ptr[idx++] = cstr;
     }

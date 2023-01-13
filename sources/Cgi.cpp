@@ -29,17 +29,22 @@ int Cgi::execute(int out, char **args, char **env) {
 
 int Cgi::launch(char **env, int fd) {
     CgiEnv environ = CgiEnv(env);
-    // std::vector<std::string> pathSplit = split(path, "?");
-    // path = pathSplit[0];
-    // if (pathSplit.size() == 2)
-    //     environ.addVariable("QUERY_STRING", pathSplit[1]);
+    std::vector<std::string> pathSplit = split(path, "?");
+    path = pathSplit[0];
+    if (pathSplit.size() == 2)
+        environ.addVariable("QUERY_STRING", pathSplit[1]);
 
-    char **args = (char **)malloc(sizeof(char *) * 3);
+    char **args = (char **) malloc(sizeof(char *) * 3);
     args[0] = (char *)path.c_str();
     args[1] = (char *)path.c_str();
     args[2] = NULL;
 
-    int status = execute(fd, args, environ.toCArray());
-    delete [] args; //TODO fix free
+    char **environArray = environ.toCArray();
+    int status = execute(fd, args, environArray);
+    free(args);
+    char **ptr = environArray;
+    while (*environArray)
+        free(*environArray++);
+    free(ptr);
     return status;
 }

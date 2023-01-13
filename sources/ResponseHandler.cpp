@@ -2,13 +2,14 @@
 
 const ResponseHandler::T ResponseHandler::_statusPairs[] = {
 	{200, "OK"},
-	{404, "Not Found"},
 	{403, "Forbidden"},
+	{404, "Not Found"},
 	{405, "Method Not Allowed"},
 	{411, "Length Required"},
 	{413, "Payload Too Large"},//close connection!!!
-	{505, "HTTP Version Not Supported"},
+	{500, "Internal Server Error"},
 	{501, "Not Implemented"},
+	{505, "HTTP Version Not Supported"},
 	{1000, "Welcome page"}
 };
 
@@ -147,7 +148,7 @@ int ResponseHandler::handleCgi() {
     Cgi cgi = Cgi(_root + _path, "/usr/local/bin/python3");
     if (cgi.launch(_env, tmpFile.getFd())) {
         _status_code = 500;
-        return 1;
+        generateErrorPage();
     }
     read_binary_file(resultFile);
     _status_code = 200;
