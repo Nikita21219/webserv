@@ -14,6 +14,7 @@ class SocketMaster
 		SocketMaster( SocketMaster const & src );
 		~SocketMaster();
 
+		const std::vector<RequestHandler>& getClientSockets() const;
 		SocketMaster &		operator=( SocketMaster const & rhs );
 		void				acceptNewClients(fd_set &tmp_read_set, fd_set &read_set, int &max_sock);
 		void				check_clients(fd_set &tmp_read_set, fd_set &tmp_write_set, fd_set &read_set, fd_set &write_set);

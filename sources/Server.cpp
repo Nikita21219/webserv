@@ -24,6 +24,7 @@ Server &				Server::operator=( Server const & rhs ) {
 		_read_set = rhs._read_set;
 		_write_set = rhs._write_set;
 		_max_sock = rhs._max_sock;
+		delete _sockets;
 		_sockets = new SocketMaster(*rhs._sockets);
 	}
 	return *this;

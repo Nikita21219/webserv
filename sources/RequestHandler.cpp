@@ -31,6 +31,7 @@ RequestHandler &				RequestHandler::operator=( RequestHandler const & rhs ) {
 		_client_socket = rhs._client_socket;
 		_serv_id = rhs._serv_id;
 		_status = rhs._status;
+		delete _answer;
 		_answer = new ResponseHandler(*rhs._answer);
 	}
 	return *this;

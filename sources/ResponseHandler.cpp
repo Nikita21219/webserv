@@ -30,8 +30,7 @@ ResponseHandler::ResponseHandler(): _conf(0), _status_code(0), _last_modified(0)
 
 ResponseHandler::ResponseHandler( const ResponseHandler & src ): _conf(src._conf),\
 					_status_code(src._status_code), _data(src._data), _last_modified(src._last_modified),\
-					_path(src._path), _location(src._location), _root(src._root), _methods(src._methods) {
-}
+					_path(src._path), _location(src._location), _root(src._root), _methods(src._methods) {}
 
 /*
 ** -------------------------------- DESTRUCTOR --------------------------------
@@ -150,7 +149,6 @@ int ResponseHandler::answerToGET() {
 		return generateErrorPage();
 	}
 	std::string resource_path = getResourse_path();
-	std::string mime_type = setMimeType(resource_path);
 	if (_methods != NOT_FOUND && _methods.find("GET") == std::string::npos) {
 		_status_code = 405;
 		return generateErrorPage();
@@ -165,7 +163,9 @@ int ResponseHandler::answerToGET() {
 	} else if (access(resource_path.c_str(), R_OK)) {
 		_status_code = 403;
 		return generateErrorPage();
-	} else if (mime_type == NOT_FOUND)
+	}
+	std::string mime_type = setMimeType(resource_path);
+	if (mime_type == NOT_FOUND)
 		return generateErrorPage();
 
 	read_binary_file(resource_path);

@@ -149,5 +149,8 @@ bool SocketMaster::checkdups(int id) {
 ** --------------------------------- ACCESSOR ---------------------------------
 */
 
+const std::vector<RequestHandler>& SocketMaster::getClientSockets() const {
+	return _client_sockets;
+}
 
 /* ************************************************************************** */
