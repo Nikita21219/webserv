@@ -10,36 +10,27 @@ const ResponseHandler::T ResponseHandler::_statusPairs[] = {
 	{405, "Method Not Allowed"},
 	{409, "Conflict"},
 	{411, "Length Required"},
-	{413, "Payload Too Large"},//close connection!!!
+	{413, "Payload Too Large"},
+	{414, "URI Too Long"},
+	{415, "Unsupported Media Type"},
 	{500, "Internal Server Error"},
 	{505, "HTTP Version Not Supported"},
 	{501, "Not Implemented"},
 	{507, "Insufficient Storage"},
 	{1000, "Welcome page"}
-
-//414 URI Too Long
-//415 Unsupported Media Type
 };
 
-const std::map<int, std::string>  ResponseHandler::_status_codes(_statusPairs, _statusPairs + 15);
+const std::map<int, std::string>  ResponseHandler::_status_codes(_statusPairs, _statusPairs + 17);
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
-ResponseHandler::ResponseHandler(): _conf(0), _status_code(0),/* _data(0), _data_size(0),*/ _last_modified(0) {}
+ResponseHandler::ResponseHandler(): _conf(0), _status_code(0), _last_modified(0) {}
 
 ResponseHandler::ResponseHandler( const ResponseHandler & src ): _conf(src._conf),\
 					_status_code(src._status_code), _data(src._data), _last_modified(src._last_modified),\
 					_path(src._path), _location(src._location), _root(src._root), _methods(src._methods) {
-/*	if (src._data) {
-		_data = new char[src._data_size];
-		for (ssize_t i = 0; i < _data_size; ++i)
-			reinterpret_cast<unsigned char *>(_data)[i] = reinterpret_cast<unsigned char *>(src._data)[i];
-	}
-	else
-		_data = 0;*/
-
 }
 
 /*
@@ -79,10 +70,10 @@ int ResponseHandler::prepareAnswer() {
 	if (_status_code)
 		return generateErrorPage();
 	if (_root == NOT_FOUND) {
-		if (_path.size())
-			_status_code = 404;
-		else
+		if (_path.size() == 1 || _path == "/index.html")
 			_status_code = 1000;
+		else
+			_status_code = 404;
 		return generateErrorPage();
 	}
 	if (_header.find("GET") != _header.end())
@@ -98,6 +89,8 @@ void ResponseHandler::sendResponseToClient(int fd) {
 	if (send(fd, _response_data.data(), _response_data.size(), 0) <= 0)
 		throw 1;
 
+	if (_status_code == 413)
+		throw 1;
 	_header.clear();
 	_response_data.clear();
 	_status_code = 0;
@@ -115,6 +108,10 @@ void ResponseHandler::extract_info(const Parser *conf) {
 		_path = _header["DELETE"];
 	else {
 		_status_code = 501;
+		return;
+	}
+	if (_path.size() > 2048) {
+		_status_code = 414;
 		return;
 	}
 	findLocation();
@@ -148,13 +145,12 @@ void ResponseHandler::findLocation() {
 }
 
 int ResponseHandler::answerToGET() {
+	if (!_path.size()) {
+		_status_code = 400;
+		return generateErrorPage();
+	}
 	std::string resource_path = getResourse_path();
-/*	if (_root.size() > 1 && _path.size() > 1)
-		resource_path = _root + _path;
-	else if (_root.size() > 1)
-		resource_path = _root;
-	else
-		resource_path = _path;*/
+	std::string mime_type = setMimeType(resource_path);
 	if (_methods != NOT_FOUND && _methods.find("GET") == std::string::npos) {
 		_status_code = 405;
 		return generateErrorPage();
@@ -169,11 +165,12 @@ int ResponseHandler::answerToGET() {
 	} else if (access(resource_path.c_str(), R_OK)) {
 		_status_code = 403;
 		return generateErrorPage();
-	}
+	} else if (mime_type == NOT_FOUND)
+		return generateErrorPage();
 
 	read_binary_file(resource_path);
 	_status_code = 200;
-	createHTTPheader(setMimeType(resource_path), NOT_FOUND, NOT_FOUND, true);
+	createHTTPheader(mime_type, NOT_FOUND, true);
 
 	return RequestHandler::READY_TO_ASWER;
 }
@@ -200,18 +197,31 @@ int ResponseHandler::answerToDELETE() {
 		return generateErrorPage();
 	}
 	_status_code = 204;
-	createHTTPheader("text/plain", NOT_FOUND, NOT_FOUND, false);
-
+	createHTTPheader("text/plain", NOT_FOUND, false);
 	return RequestHandler::READY_TO_ASWER;
 }
 
 int ResponseHandler::generateErrorPage() {
-	generateHTML();
-	if (_status_code == 405)
-		createHTTPheader("text/html", NOT_FOUND, _methods, false);
+	if (_status_code == 1000)
+		genereteWelcomePage();
+	std::string e_page;
+	if (_location != NOT_FOUND)
+		e_page = _conf->getLocfield(_location, "error_pages");
 	else
-		createHTTPheader("text/html", NOT_FOUND, NOT_FOUND, false);
+		e_page = _conf->getServfield("error_pages");
+	std::stringstream code;
+	code << _status_code;
+	if (e_page.find(code.str()) != std::string::npos) {
+		e_page = _root + '/' + code.str() + ".html";
+		if (access(e_page.c_str(), R_OK))
+			generateHTML();
+		else
+			read_binary_file(e_page);
+	}
+	else
+		generateHTML();
 
+	createHTTPheader("text/html", NOT_FOUND, false);
 	return RequestHandler::READY_TO_ASWER;
 }
 

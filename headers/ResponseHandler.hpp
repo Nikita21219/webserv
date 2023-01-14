@@ -61,10 +61,11 @@ class ResponseHandler
 		void		findLocation();
 		bool		add_index_if_needed(std::string &resource_path);
 		void		read_binary_file(const std::string filename);
-		void		createHTTPheader(std::string mimeType, std::string location, std::string allow, bool flag);
+		void		createHTTPheader(std::string mimeType, std::string file_loc, bool flag);
 		std::string	setMimeType(std::string &path);
 		std::string	getDate(std::time_t t);
 		void		generateHTML();
+		void		genereteWelcomePage();
 
 		std::string	create_filename() const;
 		void		successful_response_html(std::string s);

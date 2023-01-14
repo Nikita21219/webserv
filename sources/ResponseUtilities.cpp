@@ -42,22 +42,7 @@ void ResponseHandler::read_binary_file(const std::string filename) {
 	file.close();
 }
 
-/*
-Fields in response header
-
-Accept-Ranges: bytes
-Location: http://example.com/about.html#contacts
-Server: webserv
-Version: HTTP/1.1
-Content-Type: text/html
-Date: Tue, 27 Dec 2022 14:27:42 GMT
-Last-Modified: Tue, 06 Dec 2022 18:32:27 GMT
-Content-Length: 2222
-Connection: keep-alive
-
-*/
-
-void ResponseHandler::createHTTPheader(std::string mimeType, std::string location, std::string allow, bool flag) {
+void ResponseHandler::createHTTPheader(std::string mimeType, std::string file_loc, bool flag) {
 	std::stringstream http_header;
 
 	http_header << "HTTP/1.1 " << _status_code << ' ' << _status_codes.find(_status_code)->second << "\r\n";
@@ -67,13 +52,16 @@ void ResponseHandler::createHTTPheader(std::string mimeType, std::string locatio
 	http_header << "Date: " << getDate(std::time(0)) << "\r\n";
 	http_header << "Content-Length: " << _response_data.size() << "\r\n";
 	http_header << "Server: webserv\r\n";
-	if (allow != NOT_FOUND)
-		http_header << "Allow: " << allow << "\r\n";
-	if (location != NOT_FOUND)
-		http_header << "Location: " << location << "\r\n";
+	if (_status_code == 405)
+		http_header << "Allow: " << _methods << "\r\n";
+	if (file_loc != NOT_FOUND)
+		http_header << "Location: " << file_loc << "\r\n";
 	if (flag)
 		http_header << "Last-Modified: " << getDate(_last_modified) << "\r\n";
-	http_header << "Connection: keep-alive";
+	if (_status_code == 413)
+		http_header << "Connection: close";
+	else
+		http_header << "Connection: keep-alive";
 	http_header << "\r\n\r\n";
 
 	std::string tmp = http_header.str();
@@ -105,8 +93,14 @@ std::string ResponseHandler::getDate(std::time_t t) {
 
 std::string ResponseHandler::setMimeType(std::string &path) {
 	std::string extension = split(path, ".").back();
-	if (extension == "css")
+	if (extension == "html")
+		return "text/html";
+	else if (extension == "css")
 		return "text/css";
+	else if (extension == "txt")
+		return "text/plain";
+	else if (extension == "js")
+		return "application/javascript";
 	else if (extension == "png")
 		return "image/png";
 	else if (extension == "jpeg" || extension == "jpg")
@@ -115,8 +109,22 @@ std::string ResponseHandler::setMimeType(std::string &path) {
 		return "image/gif";
 	else if (extension == "svg" || extension == "svgz")
 		return "image/svg+xml";
-	else
-		return "text/html";
+	else if (extension == "bmp")
+		return "image/x-ms-bmp";
+	else if (extension == "eot")
+		return "application/vnd.ms-fontobject";
+	else if (extension == "woff")
+		return "font/woff";
+	else if (extension == "woff2")
+		return "font/woff2";
+	else if (extension == "zip")
+		return "application/zip";
+	else if (extension == "pdf")
+		return "application/pdf";
+	else {
+		_status_code = 415;
+		return NOT_FOUND;
+	}
 }
 
 void ResponseHandler::generateHTML() {
@@ -135,6 +143,31 @@ void ResponseHandler::generateHTML() {
 	html << "</html>";
 
 	std::string tmp = html.str();
+	_response_data.insert(_response_data.begin(), tmp.c_str(), tmp.c_str() + tmp.size());
+}
+
+void ResponseHandler::genereteWelcomePage() {
+	std::stringstream w_page;
+
+	w_page << "<!DOCTYPE html>";
+	w_page << "<html>";
+	w_page << "<head>";
+	w_page << "<title>Welcome to webserv!</title>";
+	w_page << "<style>";
+	w_page << "html { color-scheme: light dark; }";
+	w_page << "body { width: 35em; margin: 0 auto;";
+	w_page << "font-family: Tahoma, Verdana, Arial, sans-serif; }";
+	w_page << "</style>";
+	w_page << "</head>";
+	w_page << "<body>";
+	w_page << "<h1>Welcome to webserv!</h1>";
+	w_page << "<p>If you see this page, the webserv web server is successfully installed and";
+	w_page << " working. Further configuration is required.</p>";
+	w_page << "<p><em>Thank you for using webserv.</em></p>";
+	w_page << "</body>";
+	w_page << "</html>";
+
+	std::string tmp = w_page.str();
 	_response_data.insert(_response_data.begin(), tmp.c_str(), tmp.c_str() + tmp.size());
 }
 

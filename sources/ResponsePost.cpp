@@ -30,9 +30,9 @@ int ResponseHandler::answerToPOST() {
 	_data.clear();
 	_status_code = 201;
 	if (_header.find("Content-Type") != _header.end())
-		createHTTPheader(_header.find("Content-Type")->second, file_name, NOT_FOUND, false);
+		createHTTPheader(_header.find("Content-Type")->second, file_name, false);
 	else
-		createHTTPheader("text/plain", file_name, NOT_FOUND, false);
+		createHTTPheader("text/plain", file_name, false);
 	return RequestHandler::READY_TO_ASWER;
 }
 
@@ -58,21 +58,3 @@ std::string ResponseHandler::create_filename() const {
 	else
 		return _root + name;
 }
-
-/*void ResponseHandler::successful_response_html(std::string s) {
-	std::stringstream html;
-
-	html << "<!DOCTYPE html>";
-	html << "<html lang=\"en\">";
-	html << "<head>";
-	html << "	<meta charset=\"UTF-8\">";
-	html << "</head>";
-	html << "<body>";
-	html << "	<right><h2>" << "File " << s << "</h2></right>";
-	html << "	<hr><center>webserv</center>";
-	html << "</body>";
-	html << "</html>";
-
-	std::string tmp = html.str();
-	_response_data.insert(_response_data.begin(), tmp.c_str(), tmp.c_str() + tmp.size());
-}*/

@@ -63,13 +63,10 @@ void RequestHandler::new_reading() {
 	_buf[size] = 0;
 	std::string str = reinterpret_cast<char *>(_buf);
 	if (str.substr(0, str.find('\n')).find("HTTP/1.1") == std::string::npos) {
-		_answer->setStatus_code() = 505;//answer: 505 http not suported!
-		_status = static_cast<request_status>(_answer->prepareAnswer());//is it right?
+		_answer->setStatus_code() = 505;
+		_status = static_cast<request_status>(_answer->prepareAnswer());
 		return;
 	}
-
-//	std::cout << str;
-
 	while (1) {
 		end = str.find('\n') + 1;
 		header_size += end;

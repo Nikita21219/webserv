@@ -11,6 +11,8 @@
 # include <iterator>
 # include <algorithm>
 
+# define KEY_WORDS_SIZE 13
+
 class Parser;
 
 class DirectiveParser
@@ -25,7 +27,7 @@ class DirectiveParser
 
 		DirectiveParser &			operator=( DirectiveParser const & rhs );
 		std::map<std::string, std::string> const&	getContext() const;
-		static std::string const	_key_words[13];
+		static std::string const	_key_words[KEY_WORDS_SIZE];
 
 		class WrongBracketsException: public std::exception {
 			public:

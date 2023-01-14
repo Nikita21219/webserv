@@ -1,7 +1,7 @@
 #include "DirectiveParser.hpp"
 
-std::string const DirectiveParser::_key_words[13] = {"listen", "server_name", "root", "autoindex", "methods", \
-		"max_body_size", "directory", "index", "bin_path", "redirection", "alias", "cgi_pass", "location"};
+std::string const DirectiveParser::_key_words[KEY_WORDS_SIZE] = {"listen", "server_name", "root", "autoindex", "methods", \
+		"max_body_size", "directory", "index", "bin_path", "redirection", "alias", "location", "error_pages"};
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -93,7 +93,7 @@ void DirectiveParser::skipEmptyChars(std::string &tmp, std::string &str) {
 }
 
 void DirectiveParser::saveContext(std::string &str) {
-	for (int i = 0; i < 13; ++i) {
+	for (int i = 0; i < KEY_WORDS_SIZE; ++i) {
 		if (str.find(_key_words[i]) != std::string::npos) {
 			str.erase(0, str.find(_key_words[i]) + _key_words[i].size());
 			if (str[0] != ' ' && str.size() > 0)
@@ -113,7 +113,7 @@ void DirectiveParser::saveContext(std::string &str) {
 				divide_listen(str);
 			return ;
 		}
-		if (i == 12)
+		if (i == KEY_WORDS_SIZE - 1)
 			throw DirectiveParser::ProblemWithDirectiveException();
 	}
 }
@@ -139,7 +139,7 @@ void DirectiveParser::divide_listen(std::string str) {
 
 std::string DirectiveParser::saveLocations(std::string &str) {
 	std::string res;
-	while (str.substr(0, str.find('\n')).find(_key_words[12]) != std::string::npos)
+	while (str.substr(0, str.find('\n')).find("location") != std::string::npos)
 		res += skipBlockDirective(str);
 	return res;
 }
@@ -179,7 +179,6 @@ const char* DirectiveParser::WrongBracketsException::what() const throw() {
 	return "Brackets are incorrect!";
 }
 
-
 /*
 ** --------------------------------- ACCESSOR ---------------------------------
 */
@@ -187,6 +186,5 @@ const char* DirectiveParser::WrongBracketsException::what() const throw() {
 std::map<std::string, std::string> const& DirectiveParser::getContext() const {
 	return _contexts;
 }
-
 
 /* ************************************************************************** */
