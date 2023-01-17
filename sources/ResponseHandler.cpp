@@ -28,7 +28,7 @@ const std::map<int, std::string>  ResponseHandler::_status_codes(_statusPairs, _
 
 ResponseHandler::ResponseHandler(): _conf(0), _status_code(0), _last_modified(0) {}
 
-ResponseHandler::ResponseHandler( const ResponseHandler & src ): _conf(src._conf),\
+ResponseHandler::ResponseHandler( const ResponseHandler & src ): _header(src._header), _conf(src._conf),\
 					_status_code(src._status_code), _data(src._data), _last_modified(src._last_modified),\
 					_path(src._path), _location(src._location), _root(src._root), _methods(src._methods) {}
 
@@ -85,14 +85,23 @@ int ResponseHandler::prepareAnswer() {
 
 void ResponseHandler::sendResponseToClient(int fd) {
 
-	if (send(fd, _response_data.data(), _response_data.size(), 0) <= 0)
-		throw 1;
+	ssize_t size;
+	if (_response_data.size() <= BUF_SZ)
+		size = send(fd, _response_data.data(), _response_data.size(), 0);
+	else
+		size = send(fd, _response_data.data(), BUF_SZ, 0);
 
-	if (_status_code == 413)
+	if (size <= 0)
 		throw 1;
-	_header.clear();
-	_response_data.clear();
-	_status_code = 0;
+	_response_data.erase(_response_data.begin(), _response_data.begin() + size);
+	if (!_response_data.size()) {
+		if (_status_code == 413)
+			throw 1;
+		_header.clear();
+		_response_data.clear();
+		_location.clear();
+		_status_code = 0;
+	}
 }
 
 void ResponseHandler::extract_info(const Parser *conf) {
@@ -126,7 +135,6 @@ void ResponseHandler::extract_info(const Parser *conf) {
 void ResponseHandler::findLocation() {
 	if (_conf->isThereLocation(_path)) {
 		_location = _path;
-		_path.clear();
 		return;
 	} else if (_path.size() > 1) {
 		std::vector<std::string> arr = split(_path, "/");
@@ -205,9 +213,9 @@ int ResponseHandler::generateErrorPage() {
 	if (_status_code == 1000)
 		genereteWelcomePage();
 	std::string e_page;
-	if (_location != NOT_FOUND)
+	if (_location != NOT_FOUND && _location.size())
 		e_page = _conf->getLocfield(_location, "error_pages");
-	else
+	else if (_location == NOT_FOUND)
 		e_page = _conf->getServfield("error_pages");
 	std::stringstream code;
 	code << _status_code;

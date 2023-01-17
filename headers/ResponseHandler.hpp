@@ -12,15 +12,16 @@ class ResponseHandler
 		ResponseHandler( ResponseHandler const & src );
 		~ResponseHandler();
 
-		const std::map<std::string, std::string>&	getHeader() const;
 		std::map<std::string, std::string>&			setHeader();
-		const std::string&							getMethods() const;
-		const std::string&							getLocation() const;
-		const Parser*								getConf() const;
+		std::string&								setMethods();
+		std::string&								setLocation();
+		std::string&								setRoot();
+		std::string&								setPath();
+		const Parser*&								setConf();
 		int&										setStatus_code();
+		std::time_t&								setLast_modified();
 		std::vector<unsigned char>&					setData();
-
-		const std::string&							getPath() const;
+		std::vector<unsigned char>&					setResponse_data();
 
 		ResponseHandler &		operator=( ResponseHandler const & rhs );
 		int		prepareAnswer();

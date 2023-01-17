@@ -201,10 +201,6 @@ bool ResponseHandler::folderIsNotEmpty(std::string &resource_path) const {
 ** --------------------------------- ACCESSOR ---------------------------------
 */
 
-const std::map<std::string, std::string>& ResponseHandler::getHeader() const {
-	return _header;
-}
-
 std::map<std::string, std::string>& ResponseHandler::setHeader() {
 	return _header;
 }
@@ -217,18 +213,30 @@ std::vector<unsigned char>& ResponseHandler::setData() {
 	return _data;
 }
 
-const std::string& ResponseHandler::getMethods() const {
+std::string& ResponseHandler::setMethods() {
 	return _methods;
 }
 
-const std::string& ResponseHandler::getLocation() const {
+std::string& ResponseHandler::setLocation() {
 	return _location;
 }
 
-const Parser* ResponseHandler::getConf() const {
+std::string& ResponseHandler::setPath() {
+	return _path;
+}
+
+std::string& ResponseHandler::setRoot() {
+	return _root;
+}
+
+const Parser*& ResponseHandler::setConf() {
 	return _conf;
 }
 
-const std::string& ResponseHandler::getPath() const {
-	return _path;
+std::time_t& ResponseHandler::setLast_modified() {
+	return _last_modified;
+}
+
+std::vector<unsigned char>& ResponseHandler::setResponse_data() {
+	return _response_data;
 }

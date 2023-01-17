@@ -31,8 +31,16 @@ RequestHandler &				RequestHandler::operator=( RequestHandler const & rhs ) {
 		_client_socket = rhs._client_socket;
 		_serv_id = rhs._serv_id;
 		_status = rhs._status;
-		delete _answer;
-		_answer = new ResponseHandler(*rhs._answer);
+		_answer->setConf() = rhs._answer->setConf();
+		_answer->setData() = rhs._answer->setData();
+		_answer->setHeader() = rhs._answer->setHeader();
+		_answer->setLast_modified() = rhs._answer->setLast_modified();
+		_answer->setLocation() = rhs._answer->setLocation();
+		_answer->setMethods() = rhs._answer->setMethods();
+		_answer->setPath() = rhs._answer->setPath();
+		_answer->setRoot() = rhs._answer->setRoot();
+		_answer->setStatus_code() = rhs._answer->setStatus_code();
+		_answer->setResponse_data() = rhs._answer->setResponse_data();
 	}
 	return *this;
 }
@@ -72,16 +80,16 @@ void RequestHandler::new_reading() {
 		end = str.find('\n') + 1;
 		header_size += end;
 		std::string tmp = str.substr(0, end);
-		if (tmp[0] == '\n' || tmp[0] == '\r')
+		if (tmp[0] == '\n' || tmp[0] == '\r' || !tmp.size())
 			break ;
 		parse_string(tmp);
 		str.erase(0, end);
 	}
-	if (_answer->getHeader().find("Host") != _answer->getHeader().end())
-		_answer->extract_info(&_conf[select_serv(_answer->getHeader().find("Host")->second)]);
+	if (_answer->setHeader().find("Host") != _answer->setHeader().end())
+		_answer->extract_info(&_conf[select_serv(_answer->setHeader().find("Host")->second)]);
 	else
 		_answer->extract_info(&_conf[_serv_id]);
-	if (_answer->getHeader().find("POST") != _answer->getHeader().end())
+	if (_answer->setHeader().find("POST") != _answer->setHeader().end())
 		download_data(size, header_size);
 	if (_status != MUST_KEEP_READING)
 		_status = static_cast<request_status>(_answer->prepareAnswer());
@@ -91,16 +99,16 @@ void RequestHandler::download_data(ssize_t size, ssize_t header_size) {
 	ssize_t max_body = -1;
 	if (_answer->setStatus_code())
 		return;
-	else if (_answer->getMethods().find("POST") == std::string::npos) {
+	else if (_answer->setMethods().find("POST") == std::string::npos) {
 		_answer->setStatus_code() = 405;
 		return;
-	} else if (_answer->getHeader().find("Content-Length") == _answer->getHeader().end()) {
+	} else if (_answer->setHeader().find("Content-Length") == _answer->setHeader().end()) {
 		_answer->setStatus_code() = 411;
 		return;
-	} else if (_answer->getLocation() != NOT_FOUND && _answer->getConf()->getLocfield(_answer->getLocation(), "max_body_size") != NOT_FOUND) {
-		max_body = atoi(_answer->getConf()->getLocfield(_answer->getLocation(), "max_body_size").c_str());
-	} else if (_answer->getConf()->getServfield("max_body_size") != NOT_FOUND)
-		max_body = atoi(_answer->getConf()->getServfield("max_body_size").c_str());
+	} else if (_answer->setLocation() != NOT_FOUND && _answer->setConf()->getLocfield(_answer->setLocation(), "max_body_size") != NOT_FOUND) {
+		max_body = atoi(_answer->setConf()->getLocfield(_answer->setLocation(), "max_body_size").c_str());
+	} else if (_answer->setConf()->getServfield("max_body_size") != NOT_FOUND)
+		max_body = atoi(_answer->setConf()->getServfield("max_body_size").c_str());
 	ssize_t content_lenght = atoi(_answer->setHeader().find("Content-Length")->second.c_str());
 	if (max_body != -1 && content_lenght > max_body) {
 		_answer->setStatus_code() = 413;
@@ -117,11 +125,11 @@ void RequestHandler::download_data(ssize_t size, ssize_t header_size) {
 }
 
 bool RequestHandler::multipart_parser(ssize_t &header_size) {
-	if (_answer->getHeader().find("Content-Type") == _answer->getHeader().end() ||\
-		_answer->getHeader().find("Content-Type")->second.find("multipart/form-data") == std::string::npos)
+	if (_answer->setHeader().find("Content-Type") == _answer->setHeader().end() ||\
+		_answer->setHeader().find("Content-Type")->second.find("multipart/form-data") == std::string::npos)
 		return true;
 	std::string boundary;
-	boundary = _answer->getHeader().find("Content-Type")->second;
+	boundary = _answer->setHeader().find("Content-Type")->second;
 	boundary = boundary.substr(boundary.find("boundary") + 9, boundary.size() - boundary.find("boundary") + 9);
 	boundary.erase(std::remove(boundary.begin(), boundary.end(), '-'), boundary.end());
 	_answer->setHeader().erase("Content-Type");
@@ -166,8 +174,10 @@ void RequestHandler::continue_reading() {
 
 void RequestHandler::sendResponse(fd_set &write_set) {
 	_answer->sendResponseToClient(_client_socket);
-	FD_CLR(_client_socket, &write_set);
-	_status = NEW;
+	if (!_answer->setResponse_data().size()) {
+		FD_CLR(_client_socket, &write_set);
+		_status = NEW;
+	}
 }
 
 void RequestHandler::parse_string(std::string str) {
@@ -176,12 +186,14 @@ void RequestHandler::parse_string(std::string str) {
 	if (str.find(':') != std::string::npos)
 		key = str.substr(0, str.find(':'));
 	else {
+		if (str.find("HTTP/1.1") == std::string::npos)
+			return;//test!!!!!
 		key = str.substr(0, str.find(' '));
 		str.erase(str.find("HTTP/1.1") - 1, str.find('\n'));
 	}
 	str.erase(0, str.find(' ') + 1);
 	value = str.substr(0, str.find('\n'));
-	if (value.find('\r') != std::string::npos)//check this
+	if (value.find('\r') != std::string::npos)
 		value = value.substr(0, value.find('\r'));
 	_answer->setHeader().insert(_answer->setHeader().end(), std::pair<std::string, std::string>(key, value));
 }
