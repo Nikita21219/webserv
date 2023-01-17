@@ -90,9 +90,9 @@ void ResponseHandler::sendResponseToClient(int fd) {
 		size = send(fd, _response_data.data(), _response_data.size(), 0);
 	else
 		size = send(fd, _response_data.data(), BUF_SZ, 0);
-
 	if (size <= 0)
 		throw 1;
+
 	_response_data.erase(_response_data.begin(), _response_data.begin() + size);
 	if (!_response_data.size()) {
 		if (_status_code == 413)

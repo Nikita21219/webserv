@@ -117,7 +117,7 @@ void	SocketMaster::check_clients(fd_set &tmp_read_set, fd_set &tmp_write_set, fd
 				continue;
 			}
 		}
-		if (FD_ISSET(it->get_sock(), &tmp_write_set) && it->setStatus() == RequestHandler::READY_TO_ASWER) {
+		else if (FD_ISSET(it->get_sock(), &tmp_write_set) && it->setStatus() == RequestHandler::READY_TO_ASWER) {
 			try {
 				it->sendResponse(write_set);
 			} catch (int) {
