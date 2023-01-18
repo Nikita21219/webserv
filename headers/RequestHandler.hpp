@@ -5,8 +5,6 @@
 
 # define BUF_SZ 4096
 
-//# define BUF_SZ 2048
-
 class ResponseHandler;
 
 class RequestHandler

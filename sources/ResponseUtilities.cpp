@@ -8,7 +8,6 @@ bool ResponseHandler::add_index_if_needed(std::string &resource_path) {
 	struct stat s;
 	if(stat(resource_path.c_str(), &s) == 0) {
 		if(s.st_mode & S_IFDIR) {
-			_path = "Forbidden";
 			if (_conf->getLocfield(_location, "index") != NOT_FOUND)
 				resource_path = resource_path + '/' + _conf->getLocfield(_location, "index");
 			else if (_location == NOT_FOUND && _conf->getServfield("index") != NOT_FOUND)

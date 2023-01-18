@@ -68,7 +68,8 @@ class ResponseHandler
 		void		generateHTML();
 		void		genereteWelcomePage();
 
-		std::string	create_filename() const;
+		std::string	create_filename();
+		void		check_path_errors();
 		void		successful_response_html(std::string s);
 
 };

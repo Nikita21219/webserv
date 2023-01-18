@@ -55,11 +55,18 @@ std::ostream &			operator<<( std::ostream & o, RequestHandler const & i ) {
 */
 
 void RequestHandler::serve_client(fd_set &write_set) {
+	if (_status == READY_TO_ASWER) {
+		_answer->setHeader().clear();
+		_answer->setResponse_data().clear();
+		_answer->setLocation().clear();
+		_answer->setStatus_code() = 0;
+		_status = NEW;
+	}
 	if (_status == NEW)
 		new_reading();
 	else if (_status == MUST_KEEP_READING)
 		continue_reading();
-	if (_status == READY_TO_ASWER)
+	if (_status == READY_TO_ASWER || _status == ERROR_IN_REQUEST)
 		FD_SET(_client_socket, &write_set);
 }
 
@@ -91,6 +98,12 @@ void RequestHandler::new_reading() {
 		_answer->extract_info(&_conf[_serv_id]);
 	if (_answer->setHeader().find("POST") != _answer->setHeader().end())
 		download_data(size, header_size);
+	else if (_answer->setHeader().find("Content-Length") != _answer->setHeader().end() &&\
+			atoi(_answer->setHeader().find("Content-Length")->second.c_str())) {
+		_answer->setStatus_code() = 413;
+//		_status = static_cast<request_status>(_answer->prepareAnswer());
+//		return;
+	}
 	if (_status != MUST_KEEP_READING)
 		_status = static_cast<request_status>(_answer->prepareAnswer());
 }

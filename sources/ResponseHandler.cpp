@@ -84,7 +84,6 @@ int ResponseHandler::prepareAnswer() {
 }
 
 void ResponseHandler::sendResponseToClient(int fd) {
-
 	ssize_t size;
 	if (_response_data.size() <= BUF_SZ)
 		size = send(fd, _response_data.data(), _response_data.size(), 0);
@@ -98,6 +97,7 @@ void ResponseHandler::sendResponseToClient(int fd) {
 		if (_status_code == 413)
 			throw 1;
 		_header.clear();
+		_data.clear();
 		_response_data.clear();
 		_location.clear();
 		_status_code = 0;
@@ -135,6 +135,7 @@ void ResponseHandler::extract_info(const Parser *conf) {
 void ResponseHandler::findLocation() {
 	if (_conf->isThereLocation(_path)) {
 		_location = _path;
+		_path = '/';
 		return;
 	} else if (_path.size() > 1) {
 		std::vector<std::string> arr = split(_path, "/");
@@ -163,10 +164,7 @@ int ResponseHandler::answerToGET() {
 	} else if (!add_index_if_needed(resource_path)) {
 		return generateErrorPage();
 	} else if (access(resource_path.c_str(), F_OK)) {
-		if (_path == "Forbidden")
-			_status_code = 403;
-		else
-			_status_code = 404;
+		_status_code = 404;
 		return generateErrorPage();
 	} else if (access(resource_path.c_str(), R_OK)) {
 		_status_code = 403;
@@ -230,7 +228,7 @@ int ResponseHandler::generateErrorPage() {
 		generateHTML();
 
 	createHTTPheader("text/html", NOT_FOUND, false);
-	return RequestHandler::READY_TO_ASWER;
+	return RequestHandler::ERROR_IN_REQUEST;
 }
 
 /* ************************************************************************** */

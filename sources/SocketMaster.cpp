@@ -74,8 +74,6 @@ bool SocketMaster::getListenSocket(struct sockaddr_in &addr, int id, std::string
 		return 1;
 	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)))
 		return 1;
-	if (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt)))
-		return 1;
 	if (fcntl(sock, F_SETFL, O_NONBLOCK) < 0)
 		return 1;
 	if (bind(sock, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr)))
@@ -117,7 +115,8 @@ void	SocketMaster::check_clients(fd_set &tmp_read_set, fd_set &tmp_write_set, fd
 				continue;
 			}
 		}
-		else if (FD_ISSET(it->get_sock(), &tmp_write_set) && it->setStatus() == RequestHandler::READY_TO_ASWER) {
+		if (FD_ISSET(it->get_sock(), &tmp_write_set) && (it->setStatus() == RequestHandler::READY_TO_ASWER ||\
+					it->setStatus() == RequestHandler::ERROR_IN_REQUEST)) {
 			try {
 				it->sendResponse(write_set);
 			} catch (int) {
