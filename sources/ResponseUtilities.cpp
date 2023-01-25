@@ -21,7 +21,7 @@ bool ResponseHandler::add_index_if_needed(std::string &resource_path) {
 		_status_code = 404;
 		return false;
 	}
-	_last_modified = s.st_mtim.tv_sec;
+	_last_modified = 1;
 	return true;
 }
 
