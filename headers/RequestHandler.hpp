@@ -19,7 +19,7 @@ public:
         ERROR_IN_REQUEST
     };
 
-    RequestHandler(std::vector<Parser> const &conf, int sock, unsigned long id, request_status s);
+    RequestHandler(std::vector<Parser> const &conf, int sock, unsigned long id, request_status s, char **env);
     RequestHandler( RequestHandler const & src );
     ~RequestHandler();
 

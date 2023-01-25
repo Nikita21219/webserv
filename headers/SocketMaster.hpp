@@ -10,7 +10,7 @@ class SocketMaster
 
 public:
 
-    SocketMaster(std::vector<Parser> &conf, fd_set &read_set, int &max_sock);
+    SocketMaster(std::vector<Parser> &conf, fd_set &read_set, int &max_sock, char **env);
     SocketMaster( SocketMaster const & src );
     ~SocketMaster();
 
@@ -24,6 +24,7 @@ private:
     std::vector<Parser> const		&_conf;
     std::vector<RequestHandler>		_client_sockets;
     std::map<int, int>				_listen_sockets;
+    char                            **_env;
 
     SocketMaster();
     bool	getListenSocket(struct sockaddr_in &addr, int id, std::string const &host);

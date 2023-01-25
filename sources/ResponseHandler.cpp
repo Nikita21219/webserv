@@ -26,11 +26,12 @@ const std::map<int, std::string>  ResponseHandler::_status_codes(_statusPairs, _
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
-ResponseHandler::ResponseHandler(): _conf(0), _status_code(0), _last_modified(0) {}
+ResponseHandler::ResponseHandler(char **env): _conf(0), _status_code(0), _last_modified(0), _env(env) {}
 
 ResponseHandler::ResponseHandler( const ResponseHandler & src ): _header(src._header), _conf(src._conf),\
 					_status_code(src._status_code), _data(src._data), _last_modified(src._last_modified),\
-					_path(src._path), _location(src._location), _root(src._root), _methods(src._methods) {}
+					_path(src._path), _location(src._location), _root(src._root), _methods(src._methods), \
+                    _env(src._env) {}
 
 /*
 ** -------------------------------- DESTRUCTOR --------------------------------
@@ -174,8 +175,13 @@ int ResponseHandler::answerToGET() {
     if (mime_type == NOT_FOUND)
         return generateErrorPage();
 
-    read_binary_file(resource_path);
-    _status_code = 200;
+    printWar("resource_path: " + resource_path);
+    if (resource_path.find("cgi") != std::string::npos) {
+        handleCgi();
+    } else {
+        read_binary_file(resource_path);
+        _status_code = 200;
+    }
     createHTTPheader(mime_type, NOT_FOUND, true);
 
     return RequestHandler::READY_TO_ASWER;
@@ -205,6 +211,23 @@ int ResponseHandler::answerToDELETE() {
     _status_code = 204;
     createHTTPheader("text/plain", NOT_FOUND, false);
     return RequestHandler::READY_TO_ASWER;
+}
+
+int ResponseHandler::handleCgi() {
+    std::string resultFile = _root + "/cgi_out"; // TODO fix filename
+    TempFile tmpFile = TempFile(resultFile/* + itos(it->first)*/);
+    if (!tmpFile.isOpen()) {
+        printErr("File not opened"); //TODO tmp line
+        return 1;
+    }
+    Cgi cgi = Cgi(_root + _path, "/usr/local/bin/python3");
+    if (cgi.launch(_env, tmpFile.getFd())) {
+        _status_code = 500;
+        generateErrorPage();
+    }
+    read_binary_file(resultFile);
+    _status_code = 200;
+    return 0;
 }
 
 int ResponseHandler::generateErrorPage() {

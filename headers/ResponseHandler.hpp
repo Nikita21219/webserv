@@ -8,7 +8,7 @@ class ResponseHandler
 
 public:
 
-    ResponseHandler();
+    ResponseHandler(char **env);
     ResponseHandler( ResponseHandler const & src );
     ~ResponseHandler();
 
@@ -52,6 +52,7 @@ private:
     std::string							_root;
     std::string							_methods;
     std::vector<unsigned char>			_response_data;
+    char    							**_env;
 
     int			answerToGET();
     int			generateErrorPage();
@@ -67,6 +68,7 @@ private:
     std::string	getDate(std::time_t t);
     void		generateHTML();
     void		genereteWelcomePage();
+    int         handleCgi();
 
     std::string	create_filename();
     void		check_path_errors();

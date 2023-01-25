@@ -4,7 +4,7 @@
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
-SocketMaster::SocketMaster(std::vector<Parser> &conf, fd_set &read_set, int &max_sock): _conf(conf) {
+SocketMaster::SocketMaster(std::vector<Parser> &conf, fd_set &read_set, int &max_sock, char **env): _conf(conf), _env(env) {
     struct sockaddr_in	addr;
     int					port;
     int					err = 0;
@@ -99,7 +99,7 @@ void SocketMaster::acceptNewClients(fd_set &tmp_read_set, fd_set &read_set, int 
             if (max_sock <= client_sock)
                 max_sock = client_sock + 1;
             FD_SET(client_sock, &read_set);
-            _client_sockets.push_back(RequestHandler(_conf, client_sock, i, RequestHandler::NEW));
+            _client_sockets.push_back(RequestHandler(_conf, client_sock, i, RequestHandler::NEW, _env));
         }
     }
 }

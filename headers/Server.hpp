@@ -13,7 +13,7 @@ class SocketMaster;
 
 class Server {
 public:
-    Server(std::vector<Parser> &conf);
+    Server(std::vector<Parser> &conf, char **env);
     Server( Server const & src );
     ~Server();
     Server &	operator=( Server const & rhs );

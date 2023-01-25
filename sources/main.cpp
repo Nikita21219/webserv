@@ -1,7 +1,7 @@
 
 #include "webserv.h"
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv, char **env) {
     std::vector<Parser> conf;
     const char *file_conf;
     if (argc > 2) {
@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
         return 1;
 
     try {
-        Server serv = Server(conf);
+        Server serv = Server(conf, env);
         serv.mainLoop();
     } catch (std::exception &e) {
         std::cerr << e.what() << '\n';

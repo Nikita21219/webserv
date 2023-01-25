@@ -4,10 +4,10 @@
 
 #include "Server.hpp"
 
-Server::Server(std::vector<Parser> &conf): _conf(conf), _max_sock(0) {
+Server::Server(std::vector<Parser> &conf, char **env): _conf(conf), _max_sock(0) {
     FD_ZERO(&_read_set);
     FD_ZERO(&_write_set);
-    _sockets = new SocketMaster(conf, _read_set, _max_sock);
+    _sockets = new SocketMaster(conf, _read_set, _max_sock, env);
 }
 
 Server::Server( const Server & src ): _conf(src._conf), _read_set(src._read_set),\
