@@ -12,10 +12,8 @@ Cgi::~Cgi() {}
 int Cgi::execute(int out, char **args, char **env) {
     int pid = fork();
     int status;
-    if (pid < 0) {
-        printErr("Fork error"); //TODO delete line
+    if (pid < 0)
         return 1;
-    }
     else if (pid == 0) {
         dup2(out, STDOUT_FILENO);
         if (execve(bin_path.c_str(), args, env) < 0)

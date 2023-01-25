@@ -221,7 +221,8 @@ int ResponseHandler::answerToDELETE() {
 
 int ResponseHandler::handleCgi() {
     std::string resultFile = _root + "/cgi_out";
-    TempFile tmpFile = TempFile(resultFile/* + itos(it->first)*/);
+    // TODO need to append socket file descriptor to filename for unique
+    TempFile tmpFile = TempFile(resultFile/* + itos(SOCKET_FD) */);
     if (!tmpFile.isOpen())
         return 1;
     Cgi cgi = Cgi(_root + _path, _conf->getLocfield(_location, "bin_path"));
@@ -238,7 +239,7 @@ int ResponseHandler::generateErrorPage() {
     if (_status_code == 1000)
         genereteWelcomePage();
     std::string e_page;
-    if (_location != NOT_FOUND && _location.size())
+    if (_location != NOT_FOUND && !_location.empty())
         e_page = _conf->getLocfield(_location, "error_pages");
     else if (_location == NOT_FOUND)
         e_page = _conf->getServfield("error_pages");

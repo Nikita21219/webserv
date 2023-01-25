@@ -24,10 +24,7 @@ std::map<std::string, std::string> CgiEnv::parseEnv(char **env) {
     return result;
 }
 
-int CgiEnv::addVariable(std::string key, std::string val) {
-    env[key] = val;
-    return 0;
-} //TODO fix return type
+void CgiEnv::addVariable(std::string key, std::string val) {env[key] = val;}
 
 char **CgiEnv::toCArray() {
     size_t sz = env.size() + 1;

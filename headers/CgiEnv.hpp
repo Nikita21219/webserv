@@ -9,15 +9,15 @@
 
 class CgiEnv {
 public:
-    CgiEnv();
     CgiEnv(char **env);
     ~CgiEnv();
-    int addVariable(std::string key, std::string val);
+    void addVariable(std::string key, std::string val);
     char **toCArray();
 
 private:
-    std::map<std::string, std::string> parseEnv(char **env);
+    CgiEnv();
 
+    std::map<std::string, std::string> parseEnv(char **env);
     std::map<std::string, std::string> env;
 };
 
