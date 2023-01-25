@@ -90,9 +90,11 @@ std::string ResponseHandler::getDate(std::time_t t) {
     return arr[0] + ", " + arr[2] + ' ' + arr[1] + ' ' + arr[4] + ' ' + arr[3] + " GMT";
 }
 
+bool ResponseHandler::isCgi() {return _conf->getLocfield(_location, "bin_path") != NOT_FOUND;}
+
 std::string ResponseHandler::setMimeType(std::string &path) {
     std::string extension = split(path, ".").back();
-    if (extension == "html")
+    if (extension == "html" || isCgi())
         return "text/html";
     else if (extension == "css")
         return "text/css";

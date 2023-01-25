@@ -69,6 +69,7 @@ private:
     void		generateHTML();
     void		genereteWelcomePage();
     int         handleCgi();
+    bool        isCgi();
 
     std::string	create_filename();
     void		check_path_errors();

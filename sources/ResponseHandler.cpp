@@ -175,8 +175,7 @@ int ResponseHandler::answerToGET() {
     if (mime_type == NOT_FOUND)
         return generateErrorPage();
 
-    printWar("resource_path: " + resource_path);
-    if (resource_path.find("cgi") != std::string::npos) {
+    if (_conf->getLocfield(_location, "bin_path") != NOT_FOUND) {
         handleCgi();
     } else {
         read_binary_file(resource_path);
@@ -214,13 +213,13 @@ int ResponseHandler::answerToDELETE() {
 }
 
 int ResponseHandler::handleCgi() {
-    std::string resultFile = _root + "/cgi_out"; // TODO fix filename
+    std::string resultFile = _root + "/cgi_out";
     TempFile tmpFile = TempFile(resultFile/* + itos(it->first)*/);
     if (!tmpFile.isOpen()) {
         printErr("File not opened"); //TODO tmp line
         return 1;
     }
-    Cgi cgi = Cgi(_root + _path, "/usr/local/bin/python3");
+    Cgi cgi = Cgi(_root + _path, _conf->getLocfield(_location, "bin_path"));
     if (cgi.launch(_env, tmpFile.getFd())) {
         _status_code = 500;
         generateErrorPage();
