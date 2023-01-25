@@ -10,41 +10,41 @@ class ResponseHandler;
 class RequestHandler
 {
 
-	public:
+public:
 
-		enum request_status {
-			NEW,
-			MUST_KEEP_READING,
-			READY_TO_ASWER,
-			ERROR_IN_REQUEST
-		};
+    enum request_status {
+        NEW,
+        MUST_KEEP_READING,
+        READY_TO_ASWER,
+        ERROR_IN_REQUEST
+    };
 
-		RequestHandler(std::vector<Parser> const &conf, int sock, unsigned long id, request_status s);
-		RequestHandler( RequestHandler const & src );
-		~RequestHandler();
+    RequestHandler(std::vector<Parser> const &conf, int sock, unsigned long id, request_status s);
+    RequestHandler( RequestHandler const & src );
+    ~RequestHandler();
 
-		RequestHandler &		operator=( RequestHandler const & rhs );
-		int						get_sock() const;
-		request_status&			setStatus();
-		void					serve_client(fd_set &write_set);
-		void					sendResponse(fd_set &write_set);
+    RequestHandler &		operator=( RequestHandler const & rhs );
+    int						get_sock() const;
+    request_status&			setStatus();
+    void					serve_client(fd_set &write_set);
+    void					sendResponse(fd_set &write_set);
 
-	private:
+private:
 
-		std::vector<Parser> const			&_conf;
-		unsigned long						_serv_id;
-		int									_client_socket;
-		request_status						_status;
-		ResponseHandler						*_answer;
-		unsigned char						_buf[BUF_SZ + 1];
+    std::vector<Parser> const			&_conf;
+    unsigned long						_serv_id;
+    int									_client_socket;
+    request_status						_status;
+    ResponseHandler						*_answer;
+    unsigned char						_buf[BUF_SZ + 1];
 
-		RequestHandler();
-		void	new_reading();
-		void	continue_reading();
-		void	parse_string(std::string str);
-		int		select_serv(std::string const str);
-		void	download_data(ssize_t size, ssize_t header_size);
-		bool	multipart_parser(ssize_t &header_size);
+    RequestHandler();
+    void	new_reading();
+    void	continue_reading();
+    void	parse_string(std::string str);
+    int		select_serv(std::string const str);
+    void	download_data(ssize_t size, ssize_t header_size);
+    bool	multipart_parser(ssize_t &header_size);
 
 };
 

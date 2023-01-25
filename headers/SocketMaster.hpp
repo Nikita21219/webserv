@@ -8,27 +8,27 @@ class RequestHandler;
 class SocketMaster
 {
 
-	public:
+public:
 
-		SocketMaster(std::vector<Parser> &conf, fd_set &read_set, int &max_sock);
-		SocketMaster( SocketMaster const & src );
-		~SocketMaster();
+    SocketMaster(std::vector<Parser> &conf, fd_set &read_set, int &max_sock);
+    SocketMaster( SocketMaster const & src );
+    ~SocketMaster();
 
-		const std::vector<RequestHandler>& getClientSockets() const;
-		SocketMaster &		operator=( SocketMaster const & rhs );
-		void				acceptNewClients(fd_set &tmp_read_set, fd_set &read_set, int &max_sock);
-		void				check_clients(fd_set &tmp_read_set, fd_set &tmp_write_set, fd_set &read_set, fd_set &write_set);
+    const std::vector<RequestHandler>& getClientSockets() const;
+    SocketMaster &		operator=( SocketMaster const & rhs );
+    void				acceptNewClients(fd_set &tmp_read_set, fd_set &read_set, int &max_sock);
+    void				check_clients(fd_set &tmp_read_set, fd_set &tmp_write_set, fd_set &read_set, fd_set &write_set);
 
-	private:
+private:
 
-		std::vector<Parser> const		&_conf;
-		std::vector<RequestHandler>		_client_sockets;
-		std::map<int, int>				_listen_sockets;
+    std::vector<Parser> const		&_conf;
+    std::vector<RequestHandler>		_client_sockets;
+    std::map<int, int>				_listen_sockets;
 
-		SocketMaster();
-		bool	getListenSocket(struct sockaddr_in &addr, int id, std::string const &host);
-		bool	checkdups(int id);
-		void	removeClient(std::vector<RequestHandler>::iterator it, fd_set &read_set, fd_set &write_set);
+    SocketMaster();
+    bool	getListenSocket(struct sockaddr_in &addr, int id, std::string const &host);
+    bool	checkdups(int id);
+    void	removeClient(std::vector<RequestHandler>::iterator it, fd_set &read_set, fd_set &write_set);
 
 };
 

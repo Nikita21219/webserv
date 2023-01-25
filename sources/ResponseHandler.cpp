@@ -1,23 +1,23 @@
 #include "ResponseHandler.hpp"
 
 const ResponseHandler::T ResponseHandler::_statusPairs[] = {
-	{200, "OK"},
-	{201, "Created"},
-	{204, "No Content"},
-	{400, "Bad Request"},
-	{404, "Not Found"},
-	{403, "Forbidden"},
-	{405, "Method Not Allowed"},
-	{409, "Conflict"},
-	{411, "Length Required"},
-	{413, "Payload Too Large"},
-	{414, "URI Too Long"},
-	{415, "Unsupported Media Type"},
-	{500, "Internal Server Error"},
-	{505, "HTTP Version Not Supported"},
-	{501, "Not Implemented"},
-	{507, "Insufficient Storage"},
-	{1000, "Welcome page"}
+        {200, "OK"},
+        {201, "Created"},
+        {204, "No Content"},
+        {400, "Bad Request"},
+        {404, "Not Found"},
+        {403, "Forbidden"},
+        {405, "Method Not Allowed"},
+        {409, "Conflict"},
+        {411, "Length Required"},
+        {413, "Payload Too Large"},
+        {414, "URI Too Long"},
+        {415, "Unsupported Media Type"},
+        {500, "Internal Server Error"},
+        {505, "HTTP Version Not Supported"},
+        {501, "Not Implemented"},
+        {507, "Insufficient Storage"},
+        {1000, "Welcome page"}
 };
 
 const std::map<int, std::string>  ResponseHandler::_status_codes(_statusPairs, _statusPairs + 17);
@@ -43,22 +43,22 @@ ResponseHandler::~ResponseHandler() {}
 */
 
 ResponseHandler &				ResponseHandler::operator=( ResponseHandler const & rhs ) {
-	if ( this != &rhs ) {
-		_status_code = rhs._status_code;
-		_data = rhs._data;
-		_last_modified = rhs._last_modified;
-		_path = rhs._path;
-		_location = rhs._location;
-		_root = rhs._root;
-		_methods = rhs._methods;
-	}
-	return *this;
+    if ( this != &rhs ) {
+        _status_code = rhs._status_code;
+        _data = rhs._data;
+        _last_modified = rhs._last_modified;
+        _path = rhs._path;
+        _location = rhs._location;
+        _root = rhs._root;
+        _methods = rhs._methods;
+    }
+    return *this;
 }
 
 std::ostream &			operator<<( std::ostream & o, ResponseHandler const & i ) {
-	(void)i;
-	//o << "Value = " << i.getValue();
-	return o;
+    (void)i;
+    //o << "Value = " << i.getValue();
+    return o;
 }
 
 /*
@@ -66,169 +66,169 @@ std::ostream &			operator<<( std::ostream & o, ResponseHandler const & i ) {
 */
 
 int ResponseHandler::prepareAnswer() {
-	if (_status_code)
-		return generateErrorPage();
-	if (_root == NOT_FOUND) {
-		if (_path.size() == 1 || _path == "/index.html")
-			_status_code = 1000;
-		else
-			_status_code = 404;
-		return generateErrorPage();
-	}
-	if (_header.find("GET") != _header.end())
-		return answerToGET();
-	else if (_header.find("POST") != _header.end())
-		return answerToPOST();
-	else
-		return answerToDELETE();
+    if (_status_code)
+        return generateErrorPage();
+    if (_root == NOT_FOUND) {
+        if (_path.size() == 1 || _path == "/index.html")
+            _status_code = 1000;
+        else
+            _status_code = 404;
+        return generateErrorPage();
+    }
+    if (_header.find("GET") != _header.end())
+        return answerToGET();
+    else if (_header.find("POST") != _header.end())
+        return answerToPOST();
+    else
+        return answerToDELETE();
 }
 
 void ResponseHandler::sendResponseToClient(int fd) {
-	ssize_t size;
-	if (_response_data.size() <= BUF_SZ)
-		size = send(fd, _response_data.data(), _response_data.size(), 0);
-	else
-		size = send(fd, _response_data.data(), BUF_SZ, 0);
-	if (size <= 0)
-		throw 1;
+    ssize_t size;
+    if (_response_data.size() <= BUF_SZ)
+        size = send(fd, _response_data.data(), _response_data.size(), 0);
+    else
+        size = send(fd, _response_data.data(), BUF_SZ, 0);
+    if (size <= 0)
+        throw 1;
 
-	_response_data.erase(_response_data.begin(), _response_data.begin() + size);
-	if (!_response_data.size()) {
-		if (_status_code == 413)
-			throw 1;
-		_header.clear();
-		_data.clear();
-		_response_data.clear();
-		_location.clear();
-		_status_code = 0;
-	}
+    _response_data.erase(_response_data.begin(), _response_data.begin() + size);
+    if (!_response_data.size()) {
+        if (_status_code == 413)
+            throw 1;
+        _header.clear();
+        _data.clear();
+        _response_data.clear();
+        _location.clear();
+        _status_code = 0;
+    }
 }
 
 void ResponseHandler::extract_info(const Parser *conf) {
-	_conf = conf;
-	if (_status_code)
-		return;
-	if (_header.find("GET") != _header.end())
-		_path = _header["GET"];
-	else if (_header.find("POST") != _header.end())
-		_path = _header["POST"];
-	else if (_header.find("DELETE") != _header.end())
-		_path = _header["DELETE"];
-	else {
-		_status_code = 501;
-		return;
-	}
-	if (_path.size() > 2048) {
-		_status_code = 414;
-		return;
-	}
-	findLocation();
-	if (_location != NOT_FOUND) {
-		_root = _conf->getLocfield(_location, "root");
-		_methods = _conf->getLocfield(_location, "methods");
-	} else {
-		_root = _conf->getServfield("root");
-		_methods = _conf->getServfield("methods");
-	}
+    _conf = conf;
+    if (_status_code)
+        return;
+    if (_header.find("GET") != _header.end())
+        _path = _header["GET"];
+    else if (_header.find("POST") != _header.end())
+        _path = _header["POST"];
+    else if (_header.find("DELETE") != _header.end())
+        _path = _header["DELETE"];
+    else {
+        _status_code = 501;
+        return;
+    }
+    if (_path.size() > 2048) {
+        _status_code = 414;
+        return;
+    }
+    findLocation();
+    if (_location != NOT_FOUND) {
+        _root = _conf->getLocfield(_location, "root");
+        _methods = _conf->getLocfield(_location, "methods");
+    } else {
+        _root = _conf->getServfield("root");
+        _methods = _conf->getServfield("methods");
+    }
 }
 
 void ResponseHandler::findLocation() {
-	if (_conf->isThereLocation(_path)) {
-		_location = _path;
-		_path = '/';
-		return;
-	} else if (_path.size() > 1) {
-		std::vector<std::string> arr = split(_path, "/");
-		if (_conf->isThereLocation('/' + arr[1])) {
-			_path = _path.substr(arr[1].size() + 1, _path.size() - arr[1].size() + 1);
-			_location = '/' + arr[1];
-			return;
-		}
-	}
-	if (_conf->isThereLocation("/")) {
-		_location = "/";
-		return;
-	}
-	_location = NOT_FOUND;
+    if (_conf->isThereLocation(_path)) {
+        _location = _path;
+        _path = '/';
+        return;
+    } else if (_path.size() > 1) {
+        std::vector<std::string> arr = split(_path, "/");
+        if (_conf->isThereLocation('/' + arr[1])) {
+            _path = _path.substr(arr[1].size() + 1, _path.size() - arr[1].size() + 1);
+            _location = '/' + arr[1];
+            return;
+        }
+    }
+    if (_conf->isThereLocation("/")) {
+        _location = "/";
+        return;
+    }
+    _location = NOT_FOUND;
 }
 
 int ResponseHandler::answerToGET() {
-	if (!_path.size()) {
-		_status_code = 400;
-		return generateErrorPage();
-	}
-	std::string resource_path = getResourse_path();
-	if (_methods != NOT_FOUND && _methods.find("GET") == std::string::npos) {
-		_status_code = 405;
-		return generateErrorPage();
-	} else if (!add_index_if_needed(resource_path)) {
-		return generateErrorPage();
-	} else if (access(resource_path.c_str(), F_OK)) {
-		_status_code = 404;
-		return generateErrorPage();
-	} else if (access(resource_path.c_str(), R_OK)) {
-		_status_code = 403;
-		return generateErrorPage();
-	}
-	std::string mime_type = setMimeType(resource_path);
-	if (mime_type == NOT_FOUND)
-		return generateErrorPage();
+    if (!_path.size()) {
+        _status_code = 400;
+        return generateErrorPage();
+    }
+    std::string resource_path = getResourse_path();
+    if (_methods != NOT_FOUND && _methods.find("GET") == std::string::npos) {
+        _status_code = 405;
+        return generateErrorPage();
+    } else if (!add_index_if_needed(resource_path)) {
+        return generateErrorPage();
+    } else if (access(resource_path.c_str(), F_OK)) {
+        _status_code = 404;
+        return generateErrorPage();
+    } else if (access(resource_path.c_str(), R_OK)) {
+        _status_code = 403;
+        return generateErrorPage();
+    }
+    std::string mime_type = setMimeType(resource_path);
+    if (mime_type == NOT_FOUND)
+        return generateErrorPage();
 
-	read_binary_file(resource_path);
-	_status_code = 200;
-	createHTTPheader(mime_type, NOT_FOUND, true);
+    read_binary_file(resource_path);
+    _status_code = 200;
+    createHTTPheader(mime_type, NOT_FOUND, true);
 
-	return RequestHandler::READY_TO_ASWER;
+    return RequestHandler::READY_TO_ASWER;
 }
 
 int ResponseHandler::answerToDELETE() {
-	std::string resource_path = getResourse_path();
-	if (_methods.find("DELETE") == std::string::npos) {
-		_status_code = 405;
-		return generateErrorPage();
-	}
-	if(access(resource_path.c_str(), F_OK)) {
-		_status_code = 404;
-		return generateErrorPage();
-	} else if (resource_path == _root) {
-		_status_code = 403;
-		return generateErrorPage();
-	} else if (folderIsNotEmpty(resource_path)) {
-		_status_code = 409;
-		return generateErrorPage();
-	}
+    std::string resource_path = getResourse_path();
+    if (_methods.find("DELETE") == std::string::npos) {
+        _status_code = 405;
+        return generateErrorPage();
+    }
+    if(access(resource_path.c_str(), F_OK)) {
+        _status_code = 404;
+        return generateErrorPage();
+    } else if (resource_path == _root) {
+        _status_code = 403;
+        return generateErrorPage();
+    } else if (folderIsNotEmpty(resource_path)) {
+        _status_code = 409;
+        return generateErrorPage();
+    }
 
-	if (std::remove(resource_path.c_str())) {
-		_status_code = 403;
-		return generateErrorPage();
-	}
-	_status_code = 204;
-	createHTTPheader("text/plain", NOT_FOUND, false);
-	return RequestHandler::READY_TO_ASWER;
+    if (std::remove(resource_path.c_str())) {
+        _status_code = 403;
+        return generateErrorPage();
+    }
+    _status_code = 204;
+    createHTTPheader("text/plain", NOT_FOUND, false);
+    return RequestHandler::READY_TO_ASWER;
 }
 
 int ResponseHandler::generateErrorPage() {
-	if (_status_code == 1000)
-		genereteWelcomePage();
-	std::string e_page;
-	if (_location != NOT_FOUND && _location.size())
-		e_page = _conf->getLocfield(_location, "error_pages");
-	else if (_location == NOT_FOUND)
-		e_page = _conf->getServfield("error_pages");
-	std::stringstream code;
-	code << _status_code;
-	if (e_page.find(code.str()) != std::string::npos) {
-		e_page = _root + '/' + code.str() + ".html";
-		if (access(e_page.c_str(), R_OK))
-			generateHTML();
-		else
-			read_binary_file(e_page);
-	}
-	else
-		generateHTML();
+    if (_status_code == 1000)
+        genereteWelcomePage();
+    std::string e_page;
+    if (_location != NOT_FOUND && _location.size())
+        e_page = _conf->getLocfield(_location, "error_pages");
+    else if (_location == NOT_FOUND)
+        e_page = _conf->getServfield("error_pages");
+    std::stringstream code;
+    code << _status_code;
+    if (e_page.find(code.str()) != std::string::npos) {
+        e_page = _root + '/' + code.str() + ".html";
+        if (access(e_page.c_str(), R_OK))
+            generateHTML();
+        else
+            read_binary_file(e_page);
+    }
+    else
+        generateHTML();
 
-	createHTTPheader("text/html", NOT_FOUND, false);
-	return RequestHandler::ERROR_IN_REQUEST;
+    createHTTPheader("text/html", NOT_FOUND, false);
+    return RequestHandler::ERROR_IN_REQUEST;
 }
 
 /* ************************************************************************** */

@@ -6,71 +6,71 @@
 class ResponseHandler
 {
 
-	public:
+public:
 
-		ResponseHandler();
-		ResponseHandler( ResponseHandler const & src );
-		~ResponseHandler();
+    ResponseHandler();
+    ResponseHandler( ResponseHandler const & src );
+    ~ResponseHandler();
 
-		std::map<std::string, std::string>&			setHeader();
-		std::string&								setMethods();
-		std::string&								setLocation();
-		std::string&								setRoot();
-		std::string&								setPath();
-		const Parser*&								setConf();
-		int&										setStatus_code();
-		std::time_t&								setLast_modified();
-		std::vector<unsigned char>&					setData();
-		std::vector<unsigned char>&					setResponse_data();
+    std::map<std::string, std::string>&			setHeader();
+    std::string&								setMethods();
+    std::string&								setLocation();
+    std::string&								setRoot();
+    std::string&								setPath();
+    const Parser*&								setConf();
+    int&										setStatus_code();
+    std::time_t&								setLast_modified();
+    std::vector<unsigned char>&					setData();
+    std::vector<unsigned char>&					setResponse_data();
 
-		ResponseHandler &		operator=( ResponseHandler const & rhs );
-		int		prepareAnswer();
-		void	extract_info(const Parser *conf);
-		void	sendResponseToClient(int fd);
+    ResponseHandler &		operator=( ResponseHandler const & rhs );
+    int		prepareAnswer();
+    void	extract_info(const Parser *conf);
+    void	sendResponseToClient(int fd);
 
-	private:
+private:
 
-		struct T {
-			int			num;
-			const char	*name;
+    struct T {
+        int			num;
+        const char	*name;
 
-			operator std::map<int, std::string>::value_type() const {
-				return std::pair<int, std::string>(num, name);
-			}
-		};
-		static const T							_statusPairs[];
-		static const std::map<int, std::string>	_status_codes;
+        operator std::map<int, std::string>::value_type() const {
+            return std::pair<int, std::string>(num, name);
+        }
+    };
+    static const T							_statusPairs[];
+    static const std::map<int, std::string>	_status_codes;
 
-		std::map<std::string, std::string>	_header;
-		const Parser						*_conf;
-		int									_status_code;
-		std::vector<unsigned char>			_data;
-		std::time_t							_last_modified;
+    std::map<std::string, std::string>	_header;
+    const Parser						*_conf;
+    int									_status_code;
+    std::vector<unsigned char>			_data;
+    std::time_t							_last_modified;
 
-		std::string							_path;
-		std::string							_location;
-		std::string							_root;
-		std::string							_methods;
-		std::vector<unsigned char>			_response_data;
+    std::string							_path;
+    std::string							_location;
+    std::string							_root;
+    std::string							_methods;
+    std::vector<unsigned char>			_response_data;
 
-		int			answerToGET();
-		int			generateErrorPage();
-		int			answerToPOST();
-		int			answerToDELETE();
-		bool		folderIsNotEmpty(std::string &resource_path) const;
-		std::string	getResourse_path() const;
-		void		findLocation();
-		bool		add_index_if_needed(std::string &resource_path);
-		void		read_binary_file(const std::string filename);
-		void		createHTTPheader(std::string mimeType, std::string file_loc, bool flag);
-		std::string	setMimeType(std::string &path);
-		std::string	getDate(std::time_t t);
-		void		generateHTML();
-		void		genereteWelcomePage();
+    int			answerToGET();
+    int			generateErrorPage();
+    int			answerToPOST();
+    int			answerToDELETE();
+    bool		folderIsNotEmpty(std::string &resource_path) const;
+    std::string	getResourse_path() const;
+    void		findLocation();
+    bool		add_index_if_needed(std::string &resource_path);
+    void		read_binary_file(const std::string filename);
+    void		createHTTPheader(std::string mimeType, std::string file_loc, bool flag);
+    std::string	setMimeType(std::string &path);
+    std::string	getDate(std::time_t t);
+    void		generateHTML();
+    void		genereteWelcomePage();
 
-		std::string	create_filename();
-		void		check_path_errors();
-		void		successful_response_html(std::string s);
+    std::string	create_filename();
+    void		check_path_errors();
+    void		successful_response_html(std::string s);
 
 };
 
