@@ -69,7 +69,7 @@ std::ostream &			operator<<( std::ostream & o, ResponseHandler const & i ) {
 int ResponseHandler::prepareAnswer() {
     if (_status_code)
         return generateErrorPage();
-    if (_root == NOT_FOUND) {
+    if (_root == NOT_FOUND && _conf->getLocfield(_location, "redirection") == NOT_FOUND) {
         if (_path.size() == 1 || _path == "/index.html")
             _status_code = 1000;
         else
@@ -159,6 +159,12 @@ int ResponseHandler::answerToGET() {
         return generateErrorPage();
     }
     std::string resource_path = getResourse_path();
+    std::string redirectTo = NOT_FOUND;
+    if ((redirectTo = _conf->getLocfield(_location, "redirection")) != NOT_FOUND) {
+        _status_code = 301;
+        createHTTPheader("text/html", redirectTo, true);
+        return RequestHandler::READY_TO_ASWER;
+    }
     if (_methods != NOT_FOUND && _methods.find("GET") == std::string::npos) {
         _status_code = 405;
         return generateErrorPage();
@@ -171,6 +177,7 @@ int ResponseHandler::answerToGET() {
         _status_code = 403;
         return generateErrorPage();
     }
+
     std::string mime_type = setMimeType(resource_path);
     if (mime_type == NOT_FOUND)
         return generateErrorPage();
@@ -215,10 +222,8 @@ int ResponseHandler::answerToDELETE() {
 int ResponseHandler::handleCgi() {
     std::string resultFile = _root + "/cgi_out";
     TempFile tmpFile = TempFile(resultFile/* + itos(it->first)*/);
-    if (!tmpFile.isOpen()) {
-        printErr("File not opened"); //TODO tmp line
+    if (!tmpFile.isOpen())
         return 1;
-    }
     Cgi cgi = Cgi(_root + _path, _conf->getLocfield(_location, "bin_path"));
     if (cgi.launch(_env, tmpFile.getFd())) {
         _status_code = 500;
