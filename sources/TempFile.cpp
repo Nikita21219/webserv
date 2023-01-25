@@ -23,7 +23,7 @@ int TempFile::getFd() {return fd;}
 
 std::string TempFile::read() {
     close(fd);
-    std::ifstream ifs(fname);
+    std::ifstream ifs(fname.c_str());
     if (!ifs.is_open()) {
         printErr(fname + " not opened");
         return "";

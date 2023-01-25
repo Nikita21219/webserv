@@ -24,6 +24,10 @@
 #include <ctime>
 #include <locale>
 #include <dirent.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <cstring>
+#include <memory>
 
 #include "Utils.hpp"
 #include "Parser.hpp"

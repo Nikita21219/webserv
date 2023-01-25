@@ -25,7 +25,7 @@ public:
 
     ResponseHandler &		operator=( ResponseHandler const & rhs );
     int		prepareAnswer();
-    void	extract_info(const Parser *conf);
+    void	extract_info(const Parser *conf, int fd);
     void	sendResponseToClient(int fd);
 
 private:
@@ -53,6 +53,7 @@ private:
     std::string							_methods;
     std::vector<unsigned char>			_response_data;
     char    							**_env;
+    int									_client_socket;
 
     int			answerToGET();
     int			generateErrorPage();

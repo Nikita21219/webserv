@@ -93,16 +93,18 @@ void RequestHandler::new_reading() {
         str.erase(0, end);
     }
     if (_answer->setHeader().find("Host") != _answer->setHeader().end())
-        _answer->extract_info(&_conf[select_serv(_answer->setHeader().find("Host")->second)]);
+        _answer->extract_info(&_conf[select_serv(_answer->setHeader().find("Host")->second)], _client_socket);
     else
-        _answer->extract_info(&_conf[_serv_id]);
-    if (_answer->setHeader().find("POST") != _answer->setHeader().end())
+        _answer->extract_info(&_conf[_serv_id], _client_socket);
+    if (_answer->setStatus_code()) {
+        _status = static_cast<request_status>(_answer->prepareAnswer());
+        return;
+    }
+    if (_answer->setHeader().find("GET") == _answer->setHeader().end())
         download_data(size, header_size);
     else if (_answer->setHeader().find("Content-Length") != _answer->setHeader().end() &&\
 			atoi(_answer->setHeader().find("Content-Length")->second.c_str())) {
         _answer->setStatus_code() = 413;
-        //		_status = static_cast<request_status>(_answer->prepareAnswer());
-        //		return;
     }
     if (_status != MUST_KEEP_READING)
         _status = static_cast<request_status>(_answer->prepareAnswer());
@@ -110,12 +112,18 @@ void RequestHandler::new_reading() {
 
 void RequestHandler::download_data(ssize_t size, ssize_t header_size) {
     ssize_t max_body = -1;
-    if (_answer->setStatus_code())
-        return;
-    else if (_answer->setMethods().find("POST") == std::string::npos) {
+
+    std::string m;
+    if (_answer->setHeader().find("POST") != _answer->setHeader().end())
+        m = "POST";
+    else
+        m = "DELETE";
+    if (_answer->setMethods().find(m) == std::string::npos) {
         _answer->setStatus_code() = 405;
         return;
     } else if (_answer->setHeader().find("Content-Length") == _answer->setHeader().end()) {
+        if (m == "DELETE")
+            return;
         _answer->setStatus_code() = 411;
         return;
     } else if (_answer->setLocation() != NOT_FOUND && _answer->setConf()->getLocfield(_answer->setLocation(), "max_body_size") != NOT_FOUND) {
