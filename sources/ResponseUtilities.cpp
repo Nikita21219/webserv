@@ -1,10 +1,36 @@
 #include "ResponseHandler.hpp"
 
-std::string getHTMLPage(std::string path, std::string location);
+// std::string getHTMLPage(std::string path, std::string location);
 
 /*
 ** --------------------------------- METHODS ----------------------------------
 */
+
+std::vector<std::string> ResponseHandler::getListFiles(std::string path) {
+    std::vector<std::string> result;
+    DIR *dir = opendir(path.c_str());
+    struct dirent *ent;
+    while(dir && (ent = readdir(dir)) != NULL)
+        result.push_back(ent->d_name);
+    return result;
+}
+
+std::string ResponseHandler::getHTMLPage(std::string path, std::string location) {
+    std::string result;
+    std::vector<std::string> listDirs = getListFiles(path);
+    result += "<h1>Index of " + location + "</h1>\n";
+    result += "<hr>\n";
+    result += "<pre>\n";
+    for (std::vector<std::string>::iterator i = listDirs.begin(); i != listDirs.end(); i++) {
+        if (location != "/")
+            result += "<a href=\"" + location + "/" + *i + "\">" + *i + "</a>\n";
+        else
+            result += "<a href=\"" + *i + "\">" + *i + "</a>\n";
+    }
+    result += "</pre>\n";
+    result += "<hr>\n";
+    return result;
+}
 
 bool ResponseHandler::add_index_if_needed(std::string &resource_path) {
     struct stat s;
