@@ -220,8 +220,8 @@ int ResponseHandler::answerToDELETE() {
 }
 
 int ResponseHandler::handleCgi() {
-    std::string resultFile = _root + "/cgi_out";
     // TODO need to append socket file descriptor to filename for unique
+    std::string resultFile = _root + "/cgi_out"/* + itos(SOCKET_FD) */;
     TempFile tmpFile = TempFile(resultFile/* + itos(SOCKET_FD) */);
     if (!tmpFile.isOpen())
         return 1;
