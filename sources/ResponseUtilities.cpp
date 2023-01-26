@@ -1,17 +1,57 @@
 #include "ResponseHandler.hpp"
 
+// std::string getHTMLPage(std::string path, std::string location);
+
 /*
 ** --------------------------------- METHODS ----------------------------------
 */
 
+std::vector<std::string> ResponseHandler::getListFiles(std::string path) {
+    std::vector<std::string> result;
+    DIR *dir = opendir(path.c_str());
+    struct dirent *ent;
+    while(dir && (ent = readdir(dir)) != NULL)
+        result.push_back(ent->d_name);
+    return result;
+}
+
+std::string ResponseHandler::getHTMLPage(std::string path, std::string location) {
+    std::string result;
+    std::vector<std::string> listDirs = getListFiles(path);
+    result += "<h1>Index of " + location + "</h1>\n";
+    result += "<hr>\n";
+    result += "<pre>\n";
+    for (std::vector<std::string>::iterator i = listDirs.begin(); i != listDirs.end(); i++) {
+        if (location != "/")
+            result += "<a href=\"" + location + "/" + *i + "\">" + *i + "</a>\n";
+        else
+            result += "<a href=\"" + *i + "\">" + *i + "</a>\n";
+    }
+    result += "</pre>\n";
+    result += "<hr>\n";
+    return result;
+}
+
 bool ResponseHandler::add_index_if_needed(std::string &resource_path) {
     struct stat s;
     if(stat(resource_path.c_str(), &s) == 0) {
+        std::string autoindex;
+        if (_conf->getLocfield(_location, "autoindex") != NOT_FOUND)
+            autoindex = _conf->getLocfield(_location, "autoindex");
+        else if (_conf->getServfield("autoindex") != NOT_FOUND)
+            autoindex = _conf->getServfield("autoindex");
+        else
+            autoindex = "off";
         if(s.st_mode & S_IFDIR) {
             if (_conf->getLocfield(_location, "index") != NOT_FOUND)
                 resource_path = resource_path + '/' + _conf->getLocfield(_location, "index");
             else if (_location == NOT_FOUND && _conf->getServfield("index") != NOT_FOUND)
                 resource_path = resource_path + '/' + _conf->getServfield("index");
+            else if (autoindex == "on") {
+                std::string tmp = getHTMLPage(resource_path, _path);
+                _response_data.insert(_response_data.begin(), tmp.c_str(), tmp.c_str() + tmp.size());
+                return false;
+            }
             else
                 resource_path = resource_path + "/index.html";
             if (!access(resource_path.c_str(), F_OK))

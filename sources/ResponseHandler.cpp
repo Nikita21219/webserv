@@ -4,6 +4,7 @@ const ResponseHandler::T ResponseHandler::_statusPairs[] = {
         {200, "OK"},
         {201, "Created"},
         {204, "No Content"},
+        {301, "Moved Permanently"},
         {400, "Bad Request"},
         {404, "Not Found"},
         {403, "Forbidden"},
@@ -20,7 +21,7 @@ const ResponseHandler::T ResponseHandler::_statusPairs[] = {
         {1000, "Welcome page"}
 };
 
-const std::map<int, std::string>  ResponseHandler::_status_codes(_statusPairs, _statusPairs + 17);
+const std::map<int, std::string>  ResponseHandler::_status_codes(_statusPairs, _statusPairs + 18);
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -31,7 +32,7 @@ ResponseHandler::ResponseHandler(char **env): _conf(0), _status_code(0), _last_m
 ResponseHandler::ResponseHandler( const ResponseHandler & src ): _header(src._header), _conf(src._conf),\
 					_status_code(src._status_code), _data(src._data), _last_modified(src._last_modified),\
 					_path(src._path), _location(src._location), _root(src._root), _methods(src._methods), \
-                    _env(src._env) {}
+                    _env(src._env), _client_socket(src._client_socket) {}
 
 /*
 ** -------------------------------- DESTRUCTOR --------------------------------
@@ -105,8 +106,9 @@ void ResponseHandler::sendResponseToClient(int fd) {
     }
 }
 
-void ResponseHandler::extract_info(const Parser *conf) {
+void ResponseHandler::extract_info(const Parser *conf, int fd) {
     _conf = conf;
+    _client_socket = fd;
     if (_status_code)
         return;
     if (_header.find("GET") != _header.end())
@@ -169,7 +171,12 @@ int ResponseHandler::answerToGET() {
         _status_code = 405;
         return generateErrorPage();
     } else if (!add_index_if_needed(resource_path)) {
-        return generateErrorPage();
+        if (_response_data.size()) {
+            _status_code = 200;
+            createHTTPheader("text/html", NOT_FOUND, false);
+            return RequestHandler::READY_TO_ASWER;
+        } else
+            return generateErrorPage();
     } else if (access(resource_path.c_str(), F_OK)) {
         _status_code = 404;
         return generateErrorPage();
@@ -220,9 +227,8 @@ int ResponseHandler::answerToDELETE() {
 }
 
 int ResponseHandler::handleCgi() {
-    // TODO need to append socket file descriptor to filename for unique
-    std::string resultFile = _root + "/cgi_out"/* + itos(SOCKET_FD) */;
-    TempFile tmpFile = TempFile(resultFile/* + itos(SOCKET_FD) */);
+    std::string resultFile = _root + "/cgi_out";
+    TempFile tmpFile = TempFile(resultFile + itos(_client_socket));
     if (!tmpFile.isOpen())
         return 1;
     Cgi cgi = Cgi(_root + _path, _conf->getLocfield(_location, "bin_path"));
