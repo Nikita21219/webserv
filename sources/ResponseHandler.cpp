@@ -236,7 +236,6 @@ int ResponseHandler::handleCgi() {
         _status_code = 500;
         return generateErrorPage();
     }
-    printWar("resultFile: " + resultFile);
     read_binary_file(resultFile);
     _status_code = 200;
     return 0;
