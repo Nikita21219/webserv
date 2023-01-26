@@ -189,8 +189,10 @@ int ResponseHandler::answerToGET() {
     if (mime_type == NOT_FOUND)
         return generateErrorPage();
 
+    int cgiResult = 0;
     if (_conf->getLocfield(_location, "bin_path") != NOT_FOUND) {
-        handleCgi();
+        if ((cgiResult = handleCgi()))
+            return cgiResult;
     } else {
         read_binary_file(resource_path);
         _status_code = 200;
