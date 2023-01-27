@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <form action="http://127.0.0.1:4242/upload" method="post" enctype="multipart/form-data">
+      <input type="file" name="image" id="image">
+      <input type="submit" value="Upload">
+    </form>
+    <script>
+      // Listen for the form submission
+      document.querySelector("form").addEventListener("submit", function(event) {
+        event.preventDefault();
+
+        // Get the selected file
+        var image = document.querySelector("#image").files[0];
+
+        // Create a new FormData object
+        var formData = new FormData();
+        formData.append("image", image);
+
+        // Create an XMLHttpRequest object
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "http://127.0.0.1:4242/upload", true);
+
+        // Set the Transfer-Encoding header to chunked
+        xhr.setRequestHeader("Transfer-Encoding", "chunked");
+
+        // Send the request
+        xhr.send(formData);
+      });
+    </script>
+  </body>
+</html>
