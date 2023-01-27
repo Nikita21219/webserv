@@ -127,9 +127,6 @@ void RequestHandler::download_data(ssize_t size, ssize_t header_size) {
         chanked_handler(size, header_size);
         return;
     } else if (_answer->setHeader().find("Content-Length") == _answer->setHeader().end()) {
-        if (_answer->setHeader().find("Transfer-Encoding") != _answer->setHeader().end() &&\
-            _answer->setHeader().find("Transfer-Encoding")->second.find("chunked") != std::string::npos)
-
         if (m == "DELETE")
             return;
         _answer->setStatus_code() = 411;
