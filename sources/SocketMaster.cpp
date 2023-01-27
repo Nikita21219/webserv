@@ -86,7 +86,7 @@ bool SocketMaster::getListenSocket(struct sockaddr_in &addr, int id, std::string
 
 void SocketMaster::acceptNewClients(fd_set &tmp_read_set, fd_set &read_set, int &max_sock) {
     int					client_sock;
-    struct sockaddr_in	client;//is it needed somewhere?
+    struct sockaddr_in	client;
     socklen_t			size = sizeof(client);
     for (unsigned long i = 0; i < _conf.size(); ++i) {
         if (_listen_sockets.find(i) != _listen_sockets.end() && FD_ISSET(_listen_sockets[i], &tmp_read_set)) {

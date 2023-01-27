@@ -6,6 +6,33 @@
 
 int ResponseHandler::answerToPOST() {
 
+	if (_header.find("Transfer-Encoding") != _header.end() &&\
+        _header.find("Transfer-Encoding")->second.find("chunked") != std::string::npos) {
+		ssize_t max_body = -1;
+		if (_location != NOT_FOUND && _conf->getLocfield(_location, "max_body_size") != NOT_FOUND) {
+	        max_body = atoi(_conf->getLocfield(_location, "max_body_size").c_str());
+	    } else if (_conf->getServfield("max_body_size") != NOT_FOUND) {
+	        max_body = atoi(_conf->getServfield("max_body_size").c_str());
+		}
+		if (max_body != -1 && static_cast<ssize_t>(_data.size()) > max_body) {
+			_status_code = 413;
+			return generateErrorPage();
+		}
+	}
+	if (_header.find("Content-Type") == _header.end() ||\
+		_header.find("Content-Type")->second.find("multipart/form-data") == std::string::npos) {
+		std::string tmp(reinterpret_cast<char *>(_data.data()), _data.size());
+		int n = 0;
+		int i = 0;
+		for (std::string::reverse_iterator it = tmp.rbegin(); it != tmp.rend(); ++it) {
+			if (*it == '\n')
+				n++;
+			i++;
+			if (n == 2)
+				break;
+		}
+		_data.erase(_data.end() - i, _data.end());
+	}
 	std::string file_name;
 	try {
 		file_name = create_filename();

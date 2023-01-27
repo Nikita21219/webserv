@@ -1,7 +1,5 @@
 #include "ResponseHandler.hpp"
 
-// std::string getHTMLPage(std::string path, std::string location);
-
 /*
 ** --------------------------------- METHODS ----------------------------------
 */

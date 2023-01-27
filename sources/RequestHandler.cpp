@@ -5,12 +5,12 @@
 */
 
 RequestHandler::RequestHandler(std::vector<Parser> const &conf, int sock, unsigned long id, request_status s, char **env):
-_conf(conf), _serv_id(id), _client_socket(sock), _status(s) {
+_conf(conf), _serv_id(id), _client_socket(sock), _status(s), _chunk_size(0) {
     _answer = new ResponseHandler(env);
 }
 
 RequestHandler::RequestHandler( const RequestHandler & src ): _conf(src._conf),\
-				_serv_id(src._serv_id), _client_socket(src._client_socket), _status(src._status) {
+				_serv_id(src._serv_id), _client_socket(src._client_socket), _status(src._status), _chunk_size(src._chunk_size) {
     _answer = new ResponseHandler(*src._answer);
 }
 
@@ -31,6 +31,7 @@ RequestHandler &				RequestHandler::operator=( RequestHandler const & rhs ) {
         _client_socket = rhs._client_socket;
         _serv_id = rhs._serv_id;
         _status = rhs._status;
+        _chunk_size = rhs._chunk_size;
         _answer->setConf() = rhs._answer->setConf();
         _answer->setData() = rhs._answer->setData();
         _answer->setHeader() = rhs._answer->setHeader();
@@ -121,7 +122,14 @@ void RequestHandler::download_data(ssize_t size, ssize_t header_size) {
     if (_answer->setMethods().find(m) == std::string::npos) {
         _answer->setStatus_code() = 405;
         return;
+    } else if (_answer->setHeader().find("Transfer-Encoding") != _answer->setHeader().end() &&\
+            _answer->setHeader().find("Transfer-Encoding")->second.find("chunked") != std::string::npos) {
+        chanked_handler(size, header_size);
+        return;
     } else if (_answer->setHeader().find("Content-Length") == _answer->setHeader().end()) {
+        if (_answer->setHeader().find("Transfer-Encoding") != _answer->setHeader().end() &&\
+            _answer->setHeader().find("Transfer-Encoding")->second.find("chunked") != std::string::npos)
+
         if (m == "DELETE")
             return;
         _answer->setStatus_code() = 411;
@@ -141,6 +149,7 @@ void RequestHandler::download_data(ssize_t size, ssize_t header_size) {
     }
 
     _answer->setData().insert(_answer->setData().begin(), _buf + header_size, _buf + size);
+    content_lenght = atoi(_answer->setHeader().find("Content-Length")->second.c_str());
     if (static_cast<ssize_t>(_answer->setData().size()) < content_lenght)
         _status = MUST_KEEP_READING;
 }
@@ -161,8 +170,9 @@ bool RequestHandler::multipart_parser(ssize_t &header_size) {
     ssize_t multipart_size = tmp.size() + 1;
     tmp.erase(std::remove(tmp.begin(), tmp.end(), '-'), tmp.end());
     tmp.erase(std::remove(tmp.begin(), tmp.end(), '\r'), tmp.end());
-    if (boundary != tmp)
+    if (boundary != tmp) {
         return false;
+    }
 
     std::getline(stream, tmp);
     multipart_size += tmp.size() + 1;
@@ -183,6 +193,11 @@ void RequestHandler::continue_reading() {
     ssize_t size = recv(_client_socket, _buf, BUF_SZ, 0);
     if (size <= 0)
         throw 1;
+    if (_answer->setHeader().find("Transfer-Encoding") != _answer->setHeader().end() &&\
+            _answer->setHeader().find("Transfer-Encoding")->second.find("chunked") != std::string::npos) {
+        chanked_handler(size, 0);
+        return;
+    }
     ssize_t content_lenght = atoi(_answer->setHeader().find("Content-Length")->second.c_str());
     if (static_cast<ssize_t>(_answer->setData().size() + size) <= content_lenght)
         _answer->setData().insert(_answer->setData().end(), _buf, _buf + size);
@@ -191,6 +206,54 @@ void RequestHandler::continue_reading() {
 
     if (static_cast<ssize_t>(_answer->setData().size()) == content_lenght)
         _status = static_cast<request_status>(_answer->prepareAnswer());
+}
+
+void    RequestHandler::chanked_handler(ssize_t size, ssize_t start) {
+    
+    if (_chunk_size) {
+        int cur_read = _chunk_size - _chunk.size();
+        if (size - start >= cur_read) {
+            _chunk.insert(_chunk.end(), _buf + start, _buf + start + cur_read);
+            _answer->setData().insert(_answer->setData().end(), _chunk.begin(), _chunk.end());
+            _chunk.clear();
+            _chunk_size = 0;
+            start = start + cur_read;
+        } else {
+            _chunk.insert(_chunk.end(), _buf + start, _buf + start + size);
+            return;
+        }
+    }
+
+    std::string tmp(reinterpret_cast<char *>(_buf + start), size - start);
+    std::stringstream stream(tmp);
+    tmp.clear();
+    std::getline(stream, tmp);
+    while (tmp.size() >= 1 && tmp[0] == '\r')
+        std::getline(stream, tmp);
+    if (!tmp.size())
+        return;
+    stream.str(std::string());
+    stream << std::hex << tmp;
+    stream >> _chunk_size;
+    if (!_chunk_size) {
+        if (size - start < 5) {
+            _chunk_size = 0;
+            return;
+        }
+        _status = static_cast<request_status>(_answer->prepareAnswer());
+        return;
+    }
+
+    int chunk_pos = start + tmp.size() + 3;
+    if (size - chunk_pos >= _chunk_size) {
+        _answer->setData().insert(_answer->setData().end(), _buf + chunk_pos, _buf + chunk_pos + _chunk_size);
+        _chunk_size = 0;
+        chanked_handler(size, chunk_pos + _chunk_size);
+        return;
+    } else {
+        _chunk.insert(_chunk.begin(), _buf + chunk_pos, _buf + size);
+        _status = MUST_KEEP_READING;
+    }
 }
 
 void RequestHandler::sendResponse(fd_set &write_set) {
@@ -208,7 +271,7 @@ void RequestHandler::parse_string(std::string str) {
         key = str.substr(0, str.find(':'));
     else {
         if (str.find("HTTP/1.1") == std::string::npos)
-            return;//test!!!!!
+            return;
         key = str.substr(0, str.find(' '));
         str.erase(str.find("HTTP/1.1") - 1, str.find('\n'));
     }

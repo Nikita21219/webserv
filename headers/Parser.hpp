@@ -1,7 +1,6 @@
 #ifndef PARSER_HPP
 # define PARSER_HPP
 
-//# include "webserv.h"
 # include "DirectiveParser.hpp"
 
 # define NOT_FOUND "not found"

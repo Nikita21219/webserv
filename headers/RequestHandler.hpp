@@ -38,9 +38,13 @@ private:
     ResponseHandler						*_answer;
     unsigned char						_buf[BUF_SZ + 1];
 
+    std::vector<unsigned char>			_chunk;
+    int                                 _chunk_size;
+
     RequestHandler();
     void	new_reading();
     void	continue_reading();
+    void    chanked_handler(ssize_t size, ssize_t start);
     void	parse_string(std::string str);
     int		select_serv(std::string const str);
     void	download_data(ssize_t size, ssize_t header_size);
