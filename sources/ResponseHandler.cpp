@@ -189,8 +189,10 @@ int ResponseHandler::answerToGET() {
     if (mime_type == NOT_FOUND)
         return generateErrorPage();
 
+    int cgiResult = 0;
     if (_conf->getLocfield(_location, "bin_path") != NOT_FOUND) {
-        handleCgi();
+        if ((cgiResult = handleCgi()))
+            return cgiResult;
     } else {
         read_binary_file(resource_path);
         _status_code = 200;
@@ -227,14 +229,14 @@ int ResponseHandler::answerToDELETE() {
 }
 
 int ResponseHandler::handleCgi() {
-    std::string resultFile = _root + "/cgi_out";
-    TempFile tmpFile = TempFile(resultFile + itos(_client_socket));
+    std::string resultFile = _root + "/cgi_out" + itos(_client_socket);
+    TempFile tmpFile = TempFile(resultFile);
     if (!tmpFile.isOpen())
         return 1;
     Cgi cgi = Cgi(_root + _path, _conf->getLocfield(_location, "bin_path"));
     if (cgi.launch(_env, tmpFile.getFd())) {
         _status_code = 500;
-        generateErrorPage();
+        return generateErrorPage();
     }
     read_binary_file(resultFile);
     _status_code = 200;

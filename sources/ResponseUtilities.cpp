@@ -212,11 +212,11 @@ void ResponseHandler::genereteWelcomePage() {
 
 std::string ResponseHandler::getResourse_path() const {
     if (_root.size() > 1 && _path.size() > 1)
-        return _root + _path;
+        return _root + split(_path, "?").at(0);
     else if (_root.size() > 1)
         return _root;
     else
-        return _path;
+        return split(_path, "?").at(0);
 }
 
 bool ResponseHandler::folderIsNotEmpty(std::string &resource_path) const {
