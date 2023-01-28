@@ -97,10 +97,10 @@ void RequestHandler::new_reading() {
         _answer->extract_info(&_conf[select_serv(_answer->setHeader().find("Host")->second)], _client_socket);
     else
         _answer->extract_info(&_conf[_serv_id], _client_socket);
-    if (_answer->setStatus_code()) {
+/*    if (_answer->setStatus_code()) {
         _status = static_cast<request_status>(_answer->prepareAnswer());
         return;
-    }
+    }*/
     if (_answer->setHeader().find("GET") == _answer->setHeader().end())
         download_data(size, header_size);
     else if (_answer->setHeader().find("Content-Length") != _answer->setHeader().end() &&\
@@ -119,11 +119,10 @@ void RequestHandler::download_data(ssize_t size, ssize_t header_size) {
         m = "POST";
     else
         m = "DELETE";
-    if (_answer->setMethods().find(m) == std::string::npos) {
+    if (_answer->setMethods().find(m) == std::string::npos)
         _answer->setStatus_code() = 405;
-        return;
-    } else if (_answer->setHeader().find("Transfer-Encoding") != _answer->setHeader().end() &&\
-            _answer->setHeader().find("Transfer-Encoding")->second.find("chunked") != std::string::npos) {
+    if (_answer->setHeader().find("Transfer-Encoding") != _answer->setHeader().end() &&\
+        _answer->setHeader().find("Transfer-Encoding")->second.find("chunked") != std::string::npos) {
         chanked_handler(size, header_size);
         return;
     } else if (_answer->setHeader().find("Content-Length") == _answer->setHeader().end()) {
@@ -140,10 +139,8 @@ void RequestHandler::download_data(ssize_t size, ssize_t header_size) {
         _answer->setStatus_code() = 413;
         return;
     }
-    if (!multipart_parser(header_size)) {
+    if (!multipart_parser(header_size))
         _answer->setStatus_code() = 400;
-        return;
-    }
 
     _answer->setData().insert(_answer->setData().begin(), _buf + header_size, _buf + size);
     content_lenght = atoi(_answer->setHeader().find("Content-Length")->second.c_str());
