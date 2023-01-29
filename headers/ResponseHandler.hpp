@@ -40,6 +40,16 @@ private:
     };
     static const T							_statusPairs[];
     static const std::map<int, std::string>	_status_codes;
+    struct S {
+        const char  *key;
+        const char  *val;
+
+        operator std::map<std::string, std::string>::value_type() const {
+            return std::pair<std::string, std::string>(key, val);
+        }
+    };
+    static const S                      _typePairs[];
+    static const std::map<std::string, std::string> _mime_types;
 
     std::map<std::string, std::string>	_header;
     const Parser						*_conf;

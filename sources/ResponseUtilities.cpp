@@ -1,5 +1,27 @@
 #include "ResponseHandler.hpp"
 
+const ResponseHandler::S ResponseHandler::_typePairs[] = {
+    {"html", "text/html"},
+    {"css", "text/css"},
+    {"txt", "text/plain"},
+    {"js", "application/javascript"},
+    {"ico", "image/x-icon"},
+    {"png", "image/png"},
+    {"jpeg", "image/jpeg"},
+    {"jpg", "image/jpeg"},
+    {"gif", "image/gif"},
+    {"svg", "image/svg+xml"},
+    {"svgz", "image/svg+xml"},
+    {"bmp", "image/x-ms-bmp"},
+    {"eot", "application/vnd.ms-fontobject"},
+    {"woff", "font/woff"},
+    {"woff2", "font/woff2"},
+    {"zip", "application/zip"},
+    {"pdf", "application/pdf"}
+};
+
+const std::map<std::string, std::string>  ResponseHandler::_mime_types(_typePairs, _typePairs + 17);
+
 /*
 ** --------------------------------- METHODS ----------------------------------
 */
@@ -132,38 +154,11 @@ bool ResponseHandler::isCgi() {return _conf->getLocfield(_location, "bin_path") 
 
 std::string ResponseHandler::setMimeType(std::string &path) {
     std::string extension = split(path, ".").back();
-    if (extension == "html" || isCgi())
-        return "text/html";
-    else if (extension == "css")
-        return "text/css";
-    else if (extension == "txt")
-        return "text/plain";
-    else if (extension == "js")
-        return "application/javascript";
-    else if (extension == "png")
-        return "image/png";
-    else if (extension == "jpeg" || extension == "jpg")
-        return "image/jpeg";
-    else if (extension == "gif")
-        return "image/gif";
-    else if (extension == "svg" || extension == "svgz")
-        return "image/svg+xml";
-    else if (extension == "bmp")
-        return "image/x-ms-bmp";
-    else if (extension == "eot")
-        return "application/vnd.ms-fontobject";
-    else if (extension == "woff")
-        return "font/woff";
-    else if (extension == "woff2")
-        return "font/woff2";
-    else if (extension == "zip")
-        return "application/zip";
-    else if (extension == "pdf")
-        return "application/pdf";
-    else {
+    if (_mime_types.find(extension) == _mime_types.end()) {
         _status_code = 415;
         return NOT_FOUND;
-    }
+    } else
+        return _mime_types.find(extension)->second;
 }
 
 void ResponseHandler::generateHTML() {
