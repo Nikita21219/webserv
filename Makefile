@@ -1,19 +1,21 @@
 NAME = webserv
 CC = c++
 
-CPPFLAGS = -g -Wall -Wextra -Werror -Wshadow -Wno-shadow -Wunused-command-line-argument -fsanitize=address -std=c++98
+#CPPFLAGS = -g3 -Wall -Wextra -Werror -Wshadow -Wno-shadow -fsanitize=address -std=c++98
+CPPFLAGS = -Wall -Wextra -Werror -std=c++98
 
 OBJDIR = ./objs
-VPATH = .
+VPATH = sources/
+HPATH = headers/
 
-HEADER = $(wildcard $(addsuffix /*.hpp,$(VPATH)))
+HEADER = $(wildcard $(addsuffix /*.hpp,$(HPATH)))
 OBJ = $(addprefix $(OBJDIR)/,$(notdir $(SRC:.cpp=.o)))
 SRC = $(wildcard $(addsuffix /*.cpp,$(VPATH)))
 
 all:	$(NAME)
 
 $(OBJDIR)/%.o :	%.cpp $^ $(HEADER)
-	@$(CC) $(CPPFLAGS) -c $< -o $@
+	@$(CC) $(CPPFLAGS) -iquote headers -c $< -o $@
 
 $(NAME):	Makefile $(OBJDIR) $(OBJ)
 	@$(CC) $(CPPFLAGS) -o $(NAME) $(OBJ)

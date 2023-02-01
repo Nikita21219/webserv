@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script>
+function sendDeleteRequest() {
+  var filePath = document.getElementById("filePath").value;
+  var xhr = new XMLHttpRequest();
+  xhr.open("DELETE", filePath, true);
+  xhr.send();
+}
+</script>
+</head>
+<body>
+
+<label for="filePath">Enter file path:</label>
+<input type="text" id="filePath">
+<button onclick="sendDeleteRequest()">Delete File</button>
+
+</body>
+</html>
