@@ -27,7 +27,7 @@ SocketMaster::SocketMaster(std::vector<Parser> &conf, fd_set &read_set, int &max
         if (_conf[i].getServfield("listen") == NOT_FOUND)
             err = getListenSocket(addr, i, "0.0.0.0:8080");
         else
-            err = getListenSocket(addr, i, _conf[i].getServfield("listen"));
+            err = getListenSocket(addr, i, getIpPort(_conf[i]));
         if (!err) {
             FD_SET(_listen_sockets[i], &read_set);
             if (_listen_sockets[i] >= max_sock)
@@ -66,6 +66,22 @@ std::ostream &			operator<<( std::ostream & o, SocketMaster const & i ) {
 /*
 ** --------------------------------- METHODS ----------------------------------
 */
+
+std::string SocketMaster::getIpAddr() {
+    char hostname[1024];
+    struct hostent *host_entry;
+
+    gethostname(hostname, 1024);
+    host_entry = gethostbyname(hostname);
+    char *ip_address = inet_ntoa(*((struct in_addr*) host_entry->h_addr_list[0]));
+    return ip_address;
+}
+
+std::string SocketMaster::getIpPort(const Parser &conf) {
+    if (split(conf.getServfield("listen"), ":").size() != 2)
+        return getIpAddr() + conf.getServfield("listen");
+    return conf.getServfield("listen");
+}
 
 bool SocketMaster::getListenSocket(struct sockaddr_in &addr, int id, std::string const &host) {
     int opt = 1;

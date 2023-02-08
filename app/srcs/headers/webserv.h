@@ -7,6 +7,7 @@
 
 #include "color.hpp"
 
+#include <netdb.h>
 #include <sys/socket.h>
 #include <sys/fcntl.h>
 #include <sys/select.h>

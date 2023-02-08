@@ -27,10 +27,11 @@ private:
     char                            **_env;
 
     SocketMaster();
-    bool	getListenSocket(struct sockaddr_in &addr, int id, std::string const &host);
-    bool	checkdups(int id);
-    void	removeClient(std::vector<RequestHandler>::iterator it, fd_set &read_set, fd_set &write_set);
-
+    bool	    getListenSocket(struct sockaddr_in &addr, int id, std::string const &host);
+    bool	    checkdups(int id);
+    void	    removeClient(std::vector<RequestHandler>::iterator it, fd_set &read_set, fd_set &write_set);
+    std::string getIpPort(const Parser &conf);
+    std::string getIpAddr();
 };
 
 std::ostream &			operator<<( std::ostream & o, SocketMaster const & i );

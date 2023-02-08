@@ -1,7 +1,6 @@
 #include "webserv.h"
 
 int main(int argc, char **argv, char **env) {
-
     std::vector<Parser> conf;
     const char *file_conf;
     if (argc > 2) {
