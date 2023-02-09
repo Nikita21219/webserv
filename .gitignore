@@ -1,4 +1,5 @@
-webserv
+app/srcs/webserv
+app/srcs/objs
 .idea
 
 # Prerequisites

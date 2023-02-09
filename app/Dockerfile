@@ -6,12 +6,19 @@ COPY srcs/ .
 
 RUN apt-get update && \
     apt-get install -y && \
-    apt-get install vim -y && \
     make
+
+FROM ubuntu:latest
+
+RUN groupadd -r webserv && useradd -r -g webserv webserv
+
+USER webserv
 
 WORKDIR /app
 
-CMD ["./webserv", "configs/1.conf"]
+COPY --from=build /app/webserv .
+
+CMD ["./webserv", "tools/configs/1.conf"]
 
 EXPOSE 4242
 EXPOSE 2121

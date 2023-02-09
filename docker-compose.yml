@@ -2,8 +2,6 @@ version: '3.9'
 
 services:
   webserv:
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     build:
       context: app/
     restart: unless-stopped
@@ -13,6 +11,8 @@ services:
       - "2121:2121"
     networks:
       - webserv_net
+    volumes:
+      - ./app/tools:/app/tools:ro
 
 networks:
   webserv_net:
